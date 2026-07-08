@@ -10,3 +10,9 @@ debug_after_buscar.png
 __pycache__/
 *.pyc
 .env
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
