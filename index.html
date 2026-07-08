@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Refugio Marino Ventanas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root {
+  --paper: #F7F5F1;
+  --surface: #FFFFFF;
+  --surface-alt: #F0EDE6;
+  --border: #E5E1D8;
+  --border-strong: #C9C4B8;
+  --ink-1: #14140F;
+  --ink-2: #5C5750;
+  --ink-3: #8A8478;
+  --refuge: #0F6E56;
+  --refuge-dim: #1D9E75;
+  --bio: #1D9E75;
+  --chem: #2A78D6;
+  --event: #C84628;
+  --sensor: #D68A1A;
+  --community: #7A3FB8;
+  --threshold: #A32D2D;
+  --serif: 'Newsreader', Georgia, serif;
+  --sans: 'Inter', -apple-system, system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--paper);
+  color: var(--ink-1);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--paper);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.app-header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.brand-mark { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: var(--refuge); }
+.brand-name { font-family: var(--serif); font-size: 18px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink-1); }
+.brand-sub { font-size: 11px; color: var(--ink-3); margin-top: 1px; letter-spacing: 0.02em; }
+
+.nav { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+.nav-item {
+  font-family: var(--sans); font-size: 13px; background: none; border: none;
+  color: var(--ink-2); padding: 6px 12px; cursor: pointer; border-radius: 4px;
+  display: flex; align-items: baseline; gap: 6px; transition: background 0.15s, color 0.15s;
+}
+.nav-item:hover { background: var(--surface-alt); color: var(--ink-1); }
+.nav-item.active { color: var(--ink-1); background: var(--surface-alt); }
+.nav-num { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.nav-item.active .nav-num { color: var(--refuge); }
+
+.lang-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-3); }
+.lang-btn {
+  font-family: var(--mono); font-size: 11px; background: none;
+  border: 1px solid var(--border-strong); color: var(--ink-2);
+  padding: 4px 10px; border-radius: 4px; cursor: pointer;
+}
+.lang-btn:hover { background: var(--surface-alt); color: var(--ink-1); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+.dek { max-width: 720px; margin-bottom: 28px; }
+
+.section-num {
+  font-family: var(--mono); font-size: 11px; color: var(--refuge);
+  letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; display: block;
+}
+
+.headline {
+  font-family: var(--serif); font-size: 36px; line-height: 1.1; font-weight: 500;
+  letter-spacing: -0.02em; color: var(--ink-1); margin-bottom: 14px;
+}
+.headline em { font-style: italic; color: var(--refuge); }
+
+.standfirst { font-family: var(--serif); font-size: 18px; line-height: 1.5; color: var(--ink-2); font-weight: 400; }
+.standfirst.italic { font-style: italic; }
+
+.source-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.src-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+  font-size: 11px; color: var(--ink-2); font-family: var(--mono);
+}
+.src-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.chart-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+  padding: 24px; margin-bottom: 28px;
+}
+.chart-card svg { display: block; }
+.chart-card svg text { font-family: var(--sans); }
+
+.read-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px; margin-bottom: 28px;
+}
+.read-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 18px 20px;
+}
+.read-num { font-family: var(--mono); font-size: 11px; color: var(--refuge); margin-bottom: 6px; letter-spacing: 0.08em; }
+.read-title { font-family: var(--serif); font-size: 17px; font-weight: 500; color: var(--ink-1); margin-bottom: 6px; line-height: 1.25; }
+.read-body { font-size: 13px; line-height: 1.55; color: var(--ink-2); }
+
+.event-info {
+  background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--event);
+  border-radius: 0 4px 4px 0; padding: 14px 18px; font-size: 13px; line-height: 1.6;
+  color: var(--ink-2); margin-bottom: 24px;
+}
+.event-info strong { color: var(--ink-1); font-weight: 500; }
+
+.ctrl-card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 20px 24px; margin-bottom: 16px; }
+.ctrl-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.ctrl-label {
+  font-size: 12px; color: var(--ink-2); font-family: var(--mono);
+  text-transform: uppercase; letter-spacing: 0.06em; min-width: 140px;
+}
+
+input[type=range] {
+  flex: 1; min-width: 200px; height: 4px;
+  -webkit-appearance: none; appearance: none;
+  background: var(--border); border-radius: 2px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--refuge); cursor: pointer;
+  border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--refuge);
+}
+input[type=range]::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--refuge); cursor: pointer;
+  border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--refuge);
+}
+
+.freq-out { font-family: var(--mono); font-size: 14px; font-weight: 500; min-width: 180px; text-align: right; color: var(--ink-1); }
+
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 14px 16px; }
+.stat .lbl { font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.stat .val { font-family: var(--serif); font-size: 28px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink-1); line-height: 1; }
+.stat.amber .val { color: var(--sensor); }
+
+.verdict {
+  border-left: 3px solid var(--border-strong); border-radius: 0 4px 4px 0;
+  padding: 16px 20px; margin-bottom: 16px; background: var(--surface);
+  border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.verdict-title { font-family: var(--serif); font-size: 18px; font-weight: 500; color: var(--ink-1); margin-bottom: 4px; line-height: 1.3; }
+.verdict-body { font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+
+.bulletin { max-width: 720px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 48px 56px; }
+.bulletin-masthead { text-align: center; border-bottom: 2px solid var(--ink-1); padding-bottom: 16px; margin-bottom: 32px; }
+.bulletin-title { font-family: var(--serif); font-style: italic; font-size: 38px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink-1); line-height: 1; margin-bottom: 6px; }
+.bulletin-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-2); letter-spacing: 0.06em; text-transform: uppercase; }
+.bulletin-rule-thin { border-top: 1px solid var(--ink-1); margin-top: 4px; }
+.bulletin-lead { font-family: var(--serif); font-size: 22px; line-height: 1.4; color: var(--ink-1); margin-bottom: 14px; }
+.bulletin-lead em { font-style: italic; color: var(--refuge); }
+.bulletin-byline { font-size: 12px; color: var(--ink-3); font-family: var(--mono); letter-spacing: 0.04em; margin-bottom: 36px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+.bulletin-section-head { font-family: var(--mono); font-size: 11px; color: var(--refuge); letter-spacing: 0.12em; text-transform: uppercase; margin: 28px 0 14px; display: flex; align-items: center; gap: 10px; }
+.bulletin-section-head::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.bulletin-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+.bulletin-stat { padding: 16px 18px; border-right: 1px solid var(--border); text-align: center; }
+.bulletin-stat:last-child { border-right: none; }
+.bulletin-stat .num { font-family: var(--serif); font-size: 36px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--ink-1); line-height: 1; margin-bottom: 6px; }
+.bulletin-stat .lbl { font-size: 11px; color: var(--ink-2); line-height: 1.3; }
+.bulletin-findings { counter-reset: finding; list-style: none; padding: 0; margin: 0; }
+.bulletin-finding { counter-increment: finding; padding: 14px 0 14px 44px; position: relative; border-bottom: 1px solid var(--border); }
+.bulletin-finding:last-child { border-bottom: none; }
+.bulletin-finding::before { content: counter(finding, decimal-leading-zero); position: absolute; left: 0; top: 14px; font-family: var(--mono); font-size: 13px; color: var(--refuge); font-weight: 500; }
+.bulletin-finding strong { display: block; font-family: var(--serif); font-size: 17px; font-weight: 500; color: var(--ink-1); margin-bottom: 4px; line-height: 1.3; }
+.bulletin-finding span { font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.bulletin-next { background: var(--paper); border-radius: 4px; padding: 16px 20px; font-size: 14px; line-height: 1.7; color: var(--ink-2); }
+.bulletin-next strong { color: var(--ink-1); font-weight: 500; }
+.bulletin-foot { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); font-family: var(--serif); font-style: italic; font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+.bulletin-foot .sig { display: block; margin-top: 14px; font-family: var(--mono); font-style: normal; font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; }
+
+.next-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.action-btn {
+  font-family: var(--sans); font-size: 13px;
+  background: var(--surface); border: 1px solid var(--border-strong); color: var(--ink-1);
+  padding: 8px 14px; border-radius: 4px; cursor: pointer; transition: background 0.15s;
+}
+.action-btn:hover { background: var(--surface-alt); }
+.action-btn.primary { background: var(--ink-1); color: var(--paper); border-color: var(--ink-1); }
+.action-btn.primary:hover { background: var(--ink-2); }
+
+/* Parameter tabs — now grouped */
+.param-tabs {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px; background: var(--surface-alt); border-radius: 6px;
+  margin-bottom: 16px; flex-wrap: wrap;
+}
+.param-tabs-label { font-family: var(--mono); font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 8px 0 6px; }
+.param-tab {
+  background: transparent; border: none; padding: 6px 12px; border-radius: 3px; cursor: pointer;
+  font-family: var(--sans); font-size: 13px; color: var(--ink-2);
+  transition: background 0.15s, color 0.15s;
+  display: inline-flex; align-items: baseline; gap: 6px;
+}
+.param-tab:hover { background: var(--surface); color: var(--ink-1); }
+.param-tab.active { background: var(--surface); color: var(--ink-1); font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+.param-tab .formula { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.param-tab.active .formula { color: var(--refuge); }
+.param-tab.type-sensor::after {
+  content: '○'; font-family: var(--mono); font-size: 10px; color: var(--sensor); margin-left: 2px;
+}
+.param-tab.type-both::after {
+  content: '●'; font-family: var(--mono); font-size: 9px; color: var(--refuge-dim); margin-left: 2px;
+}
+
+.param-divider {
+  width: 1px; height: 16px; background: var(--border-strong);
+  margin: 0 6px; flex-shrink: 0;
+}
+.param-group-label {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.06em; text-transform: uppercase; padding: 0 4px;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.param-group-label.g-lab { color: var(--chem); }
+.param-group-label.g-lab::before { content: '●'; font-size: 9px; }
+.param-group-label.g-both { color: var(--refuge-dim); }
+.param-group-label.g-both::before { content: '●'; font-size: 9px; }
+.param-group-label.g-sensor { color: var(--sensor); }
+.param-group-label.g-sensor::before { content: '○'; font-size: 10px; }
+
+.param-desc { font-size: 12px; color: var(--ink-3); margin: -8px 0 16px; font-style: italic; }
+
+/* Event chip row + panel */
+.event-chip-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 16px 0 4px; padding-top: 14px; border-top: 1px solid var(--border); }
+.event-chip-row-label { font-family: var(--mono); font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; margin-right: 6px; }
+.event-chip {
+  background: transparent; border: 1px solid var(--border);
+  padding: 5px 11px; border-radius: 999px; cursor: pointer;
+  font-family: var(--sans); font-size: 12px; color: var(--ink-2);
+  transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;
+}
+.event-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--event); display: inline-block; opacity: 0.4; }
+.event-chip:hover { background: var(--surface-alt); color: var(--ink-1); }
+.event-chip.active { background: var(--ink-1); color: var(--paper); border-color: var(--ink-1); }
+.event-chip.active::before { background: var(--paper); opacity: 1; }
+.event-chip.community::before { background: var(--community); }
+
+.event-panel { margin-top: 12px; padding: 24px 28px; background: var(--surface-alt); border: 1px solid var(--border); border-left: 3px solid var(--event); border-radius: 4px; animation: panelIn 0.18s ease-out; }
+@keyframes panelIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.event-panel.empty { background: transparent; border: 1px dashed var(--border); border-left: 1px dashed var(--border); color: var(--ink-3); text-align: center; font-style: italic; font-size: 13px; padding: 16px; }
+.event-panel-eyebrow { font-family: var(--mono); font-size: 11px; color: var(--event); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.event-panel-title { font-family: var(--serif); font-size: 22px; font-weight: 500; color: var(--ink-1); margin: 0 0 6px; line-height: 1.2; }
+.event-panel-source { font-size: 12px; color: var(--ink-3); font-family: var(--mono); margin-bottom: 14px; }
+.event-panel-desc { font-size: 14px; color: var(--ink-2); line-height: 1.55; margin-bottom: 20px; }
+.event-panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding-top: 16px; border-top: 1px solid var(--border); }
+.event-panel-section-head { font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.event-panel-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--ink-2); padding: 4px 0; }
+.event-panel-row .key { color: var(--ink-3); font-size: 12px; }
+.event-panel-row .val { font-weight: 500; color: var(--ink-1); font-variant-numeric: tabular-nums; }
+.event-panel-row .val.muted { color: var(--ink-3); font-weight: 400; font-style: italic; }
+.event-panel-callout { font-size: 13px; color: var(--ink-1); background: var(--paper); border-left: 2px solid var(--event); padding: 10px 14px; margin-top: 12px; border-radius: 0 3px 3px 0; }
+
+.delta { font-family: var(--mono); font-size: 12px; padding: 1px 6px; border-radius: 3px; margin-left: 6px; }
+.delta.down { background: rgba(163, 45, 45, 0.10); color: var(--threshold); }
+.delta.up { background: rgba(29, 158, 117, 0.10); color: var(--bio); }
+.delta.flat { background: var(--surface-alt); color: var(--ink-3); }
+
+/* ── Map screen ── */
+.map-card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0; margin-bottom: 24px; overflow: hidden; }
+#bay-map { height: 520px; width: 100%; background: var(--surface-alt); }
+.leaflet-popup-content { font-family: var(--sans); font-size: 13px; line-height: 1.5; color: var(--ink-1); }
+.leaflet-popup-content b { font-family: var(--serif); font-weight: 500; font-size: 14px; display: block; margin-bottom: 4px; }
+.leaflet-popup-content .pop-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-top: 6px; }
+
+.map-legend {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  padding: 14px 18px; border-top: 1px solid var(--border);
+  background: var(--paper);
+}
+.map-legend label { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); cursor: pointer; user-select: none; }
+.map-legend input[type=checkbox] { cursor: pointer; accent-color: var(--refuge); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* Stakeholder network table */
+.network-table {
+  width: 100%; border-collapse: collapse; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 4px; overflow: hidden;
+  font-size: 13px;
+}
+.network-table thead { background: var(--surface-alt); }
+.network-table th {
+  text-align: left; padding: 12px 16px;
+  font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+  text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500;
+  border-bottom: 1px solid var(--border);
+}
+.network-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--ink-2); vertical-align: top; }
+.network-table tr:last-child td { border-bottom: none; }
+.network-table td.actor { font-family: var(--serif); font-size: 15px; font-weight: 500; color: var(--ink-1); width: 28%; }
+.network-table td.public-yes { color: var(--bio); font-family: var(--mono); font-size: 12px; }
+.network-table td.public-no { color: var(--threshold); font-family: var(--mono); font-size: 12px; }
+.network-table td.public-partial { color: var(--sensor); font-family: var(--mono); font-size: 12px; }
+
+/* Report form */
+.report-form {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+  padding: 24px 28px; margin-bottom: 24px;
+}
+.report-form .field { margin-bottom: 14px; }
+.report-form label { display: block; font-size: 12px; color: var(--ink-2); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.report-form input[type=text],
+.report-form input[type=datetime-local],
+.report-form select,
+.report-form textarea {
+  width: 100%; padding: 9px 12px;
+  border: 1px solid var(--border-strong); border-radius: 3px;
+  background: var(--paper); color: var(--ink-1);
+  font-family: var(--sans); font-size: 14px;
+}
+.report-form textarea { min-height: 80px; resize: vertical; font-family: var(--sans); }
+.report-form input:focus, .report-form select:focus, .report-form textarea:focus {
+  outline: none; border-color: var(--refuge); background: var(--surface);
+}
+.report-form .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.report-form .field-help { font-size: 11px; color: var(--ink-3); margin-top: 4px; font-style: italic; }
+.report-status {
+  display: none; padding: 12px 16px; background: rgba(29, 158, 117, 0.08);
+  border: 1px solid var(--bio); color: var(--ink-1); border-radius: 3px;
+  font-size: 13px; margin-top: 14px;
+}
+.report-status.show { display: block; animation: panelIn 0.2s ease-out; }
+.report-status.error { background: rgba(163, 45, 45, 0.08); border-color: var(--threshold); }
+.pick-loc-btn {
+  background: var(--paper); border: 1px dashed var(--border-strong);
+  color: var(--ink-2); padding: 9px 12px; border-radius: 3px;
+  font-family: var(--mono); font-size: 12px; cursor: pointer; width: 100%;
+}
+.pick-loc-btn.picked { border-style: solid; border-color: var(--community); color: var(--community); }
+.pick-loc-btn:hover { background: var(--surface); }
+
+.mode-banner {
+  font-family: var(--mono); font-size: 11px; color: var(--community);
+  background: rgba(122, 63, 184, 0.06); border: 1px solid rgba(122, 63, 184, 0.25);
+  padding: 8px 14px; border-radius: 3px; margin-bottom: 14px;
+  display: none; align-items: center; gap: 8px;
+}
+.mode-banner.show { display: flex; }
+.mode-banner::before { content: '◉'; color: var(--community); }
+
+/* Connect / public CTA cards */
+.cta-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px; margin-top: 16px; margin-bottom: 24px;
+}
+.cta-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px; padding: 18px 20px;
+}
+.cta-card .cta-eyebrow { font-family: var(--mono); font-size: 10px; color: var(--refuge); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.cta-card .cta-title { font-family: var(--serif); font-size: 17px; font-weight: 500; color: var(--ink-1); margin-bottom: 6px; line-height: 1.3; }
+.cta-card .cta-body { font-size: 13px; color: var(--ink-2); line-height: 1.55; margin-bottom: 10px; }
+.cta-card .cta-link { font-size: 12px; color: var(--refuge); text-decoration: none; font-family: var(--mono); }
+.cta-card .cta-link:hover { text-decoration: underline; }
+
+@media (max-width: 640px) {
+  .event-panel-grid { grid-template-columns: 1fr; gap: 20px; }
+  .event-panel { padding: 20px 18px; }
+  .event-panel-title { font-size: 18px; }
+  .app-header-inner { gap: 16px; padding: 12px 16px; }
+  .nav { order: 3; width: 100%; }
+  .brand-name { font-size: 16px; }
+  main { padding: 24px 16px 48px; }
+  .headline { font-size: 28px; }
+  .standfirst { font-size: 16px; }
+  .bulletin { padding: 28px 24px; }
+  .bulletin-title { font-size: 28px; }
+  .bulletin-lead { font-size: 18px; }
+  .bulletin-stats { grid-template-columns: 1fr; }
+  .bulletin-stat { border-right: none; border-bottom: 1px solid var(--border); }
+  .bulletin-stat:last-child { border-bottom: none; }
+  .stat-grid { grid-template-columns: 1fr; }
+  .chart-card { padding: 16px; }
+  .ctrl-row { flex-direction: column; align-items: stretch; }
+  .ctrl-label, .freq-out { min-width: 0; text-align: left; }
+  .network-table { font-size: 12px; }
+  .network-table td.actor { width: auto; }
+  .network-table th, .network-table td { padding: 10px 10px; }
+  .report-form .row2 { grid-template-columns: 1fr; }
+  #bay-map { height: 380px; }
+}
+
+.app-footer { max-width: 1100px; margin: 0 auto; padding: 32px 24px; border-top: 1px solid var(--border); font-size: 12px; color: var(--ink-3); line-height: 1.6; font-family: var(--mono); }
+.app-footer strong { color: var(--ink-2); font-weight: 500; }
+</style>
+</head>
+<body data-lang="es">
+
+<header class="app-header">
+  <div class="app-header-inner">
+    <div class="brand" onclick="showScreen('timeline')">
+      <div class="brand-mark">
+        <svg viewBox="0 0 28 28" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 11 Q 7 7, 11 11 T 19 11 T 27 11"/>
+          <path d="M3 17 Q 7 13, 11 17 T 19 17 T 27 17"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Refugio Marino Ventanas</div>
+        <div class="brand-sub" data-es="Quintero-Puchuncaví" data-en="Quintero-Puchuncaví">Quintero-Puchuncaví</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-item active" data-screen="timeline" onclick="showScreen('timeline')">
+        <span class="nav-num">01</span>
+        <span data-es="La bahía" data-en="The bay">La bahía</span>
+      </button>
+      <button class="nav-item" data-screen="event" onclick="showScreen('event')">
+        <span class="nav-num">02</span>
+        <span data-es="El evento" data-en="The event">El evento</span>
+      </button>
+      <button class="nav-item" data-screen="map" onclick="showScreen('map')">
+        <span class="nav-num">03</span>
+        <span data-es="El mapa" data-en="The map">El mapa</span>
+      </button>
+      <button class="nav-item" data-screen="report" onclick="showScreen('report')">
+        <span class="nav-num">04</span>
+        <span data-es="El boletín" data-en="The bulletin">El boletín</span>
+      </button>
+    </nav>
+
+    <div class="lang-toggle">
+      <button class="lang-btn" id="lang-btn" onclick="toggleLang()">EN</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SCREEN 01 — TIMELINE (chart first now)
+     ════════════════════════════════════════════════════════════════ -->
+<section class="screen active" id="screen-timeline">
+
+  <span class="section-num" data-es="§ 01 · La línea de tiempo de la bahía" data-en="§ 01 · The bay timeline">§ 01 · La línea de tiempo de la bahía</span>
+
+  <div class="source-row">
+    <span class="src-chip"><span class="src-dot" style="background: var(--bio);"></span><span data-es="Biodiversidad · Caleta Ventanas + Capital Azul · 2018–presente" data-en="Biodiversity · Caleta Ventanas + Capital Azul · 2018–present">Biodiversidad · Caleta Ventanas + Capital Azul · 2018–presente</span></span>
+    <span class="src-chip"><span class="src-dot" style="background: var(--chem);"></span><span data-es="Química · programa Díaz (PUCV/UPLA) · abril 2025–presente" data-en="Chemistry · Díaz program (PUCV/UPLA) · April 2025–present">Química · programa Díaz (PUCV/UPLA) · abril 2025–presente</span></span>
+    <span class="src-chip"><span class="src-dot" style="background: var(--event);"></span><span data-es="Eventos · registros SMA + prensa" data-en="Events · SMA registry + press">Eventos · registros SMA + prensa</span></span>
+    <span class="src-chip"><span class="src-dot" style="background: var(--community);"></span><span data-es="Reportes ciudadanos · esta plataforma" data-en="Community reports · this platform">Reportes ciudadanos · esta plataforma</span></span>
+  </div>
+
+  <div class="param-tabs" id="s1-param-tabs">
+    <span class="param-group-label g-lab" data-es="Solo laboratorio · Díaz" data-en="Lab only · Díaz">Solo laboratorio · Díaz</span>
+    <button class="param-tab type-lab active" data-param="cobre" onclick="setParameter('cobre')"><span data-es="Cobre" data-en="Copper">Cobre</span> <span class="formula">Cu</span></button>
+    <button class="param-tab type-lab" data-param="arsenico" onclick="setParameter('arsenico')"><span data-es="Arsénico" data-en="Arsenic">Arsénico</span> <span class="formula">As</span></button>
+    <button class="param-tab type-lab" data-param="plomo" onclick="setParameter('plomo')"><span data-es="Plomo" data-en="Lead">Plomo</span> <span class="formula">Pb</span></button>
+    <span class="param-divider"></span>
+    <span class="param-group-label g-both" data-es="Ambos · lab + sensor" data-en="Both · lab + sensor">Ambos · lab + sensor</span>
+    <button class="param-tab type-both" data-param="pH" onclick="setParameter('pH')"><span data-es="pH" data-en="pH">pH</span></button>
+    <button class="param-tab type-both" data-param="oxigeno" onclick="setParameter('oxigeno')"><span data-es="Oxígeno disuelto" data-en="Dissolved oxygen">Oxígeno disuelto</span> <span class="formula">O₂</span></button>
+    <button class="param-tab type-both" data-param="temperatura" onclick="setParameter('temperatura')"><span data-es="Temperatura" data-en="Temperature">Temperatura</span> <span class="formula">°C</span></button>
+    <span class="param-divider"></span>
+    <span class="param-group-label g-sensor" data-es="Solo sensor · Gene/MBARI (propuesto)" data-en="Sensor only · Gene/MBARI (proposed)">Solo sensor · Gene/MBARI (propuesto)</span>
+    <button class="param-tab type-sensor" data-param="clorofila" onclick="setParameter('clorofila')"><span data-es="Clorofila-a" data-en="Chlorophyll-a">Clorofila-a</span> <span class="formula">µg/L</span></button>
+    <button class="param-tab type-sensor" data-param="turbidez" onclick="setParameter('turbidez')"><span data-es="Turbidez" data-en="Turbidity">Turbidez</span> <span class="formula">NTU</span></button>
+    <button class="param-tab type-sensor" data-param="pCO2" onclick="setParameter('pCO2')"><span data-es="pCO₂" data-en="pCO₂">pCO₂</span> <span class="formula">µatm</span></button>
+  </div>
+  <div class="param-desc" id="s1-param-desc"></div>
+
+  <div class="chart-card">
+    <svg viewBox="0 0 900 590" width="100%" role="img" aria-label="Three-track bay timeline">
+      <defs>
+        <pattern id="nomon" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="7" stroke="#8A8478" stroke-width="1" stroke-opacity="0.4"/>
+        </pattern>
+        <pattern id="needsensor" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="6" stroke="#D68A1A" stroke-width="1" stroke-opacity="0.45"/>
+        </pattern>
+      </defs>
+
+      <rect x="70" y="30" width="810" height="120" fill="#FAF8F2" rx="2"/>
+      <rect x="70" y="180" width="810" height="120" fill="#FAF8F2" rx="2"/>
+      <rect x="70" y="330" width="810" height="160" fill="#FAF8F2" rx="2"/>
+
+      <g opacity="0.85">
+        <rect id="event-band-0" x="130.88" y="30" width="1.5" height="460" fill="#C84628" opacity="0.10"/>
+        <rect id="event-band-1" x="180.12" y="30" width="1.5" height="460" fill="#C84628" opacity="0.10"/>
+        <rect id="event-band-2" x="302.12" y="30" width="1.5" height="460" fill="#C84628" opacity="0.10"/>
+        <rect id="event-band-3" x="534.30" y="30" width="1.5" height="460" fill="#C84628" opacity="0.10"/>
+        <rect id="event-band-4" x="805.07" y="30" width="1.5" height="460" fill="#C84628" opacity="0.10"/>
+      </g>
+
+      <line x1="130.88" y1="30" x2="130.88" y2="490" stroke="#C84628" stroke-width="1" stroke-dasharray="2,3" opacity="0.55"/>
+      <line x1="180.12" y1="30" x2="180.12" y2="490" stroke="#C84628" stroke-width="1" stroke-dasharray="2,3" opacity="0.55"/>
+      <line x1="302.12" y1="30" x2="302.12" y2="490" stroke="#C84628" stroke-width="1" stroke-dasharray="2,3" opacity="0.55"/>
+      <line x1="534.30" y1="30" x2="534.30" y2="490" stroke="#C84628" stroke-width="1" stroke-dasharray="2,3" opacity="0.55"/>
+      <line x1="805.07" y1="30" x2="805.07" y2="490" stroke="#C84628" stroke-width="1" stroke-dasharray="2,3" opacity="0.55"/>
+
+      <!-- group for community report verticals, populated by JS -->
+      <g id="community-markers"></g>
+
+      <rect x="70" y="180" width="690.88" height="120" fill="url(#nomon)"/>
+      <text id="nomon-l1" x="415" y="237" text-anchor="middle" font-size="11" fill="#5C5750" font-style="italic" data-es="Sin monitoreo sistemático de química — enero 2018 a marzo 2025" data-en="No systematic chemistry monitoring — January 2018 to March 2025">Sin monitoreo sistemático de química — enero 2018 a marzo 2025</text>
+      <text id="nomon-l2" x="415" y="252" text-anchor="middle" font-size="10" fill="#8A8478" data-es="hallazgo, no datos faltantes" data-en="a finding, not missing data">hallazgo, no datos faltantes</text>
+
+      <!-- overlay shown only for continuous-only parameters -->
+      <g id="needsensor-overlay" style="display:none">
+        <rect x="70" y="180" width="810" height="120" fill="url(#needsensor)"/>
+        <text x="475" y="235" text-anchor="middle" font-size="11" fill="#5C5750" font-style="italic" data-es="Parámetro no medido por el programa mensual" data-en="Parameter not measured by the monthly program">Parámetro no medido por el programa mensual</text>
+        <text x="475" y="250" text-anchor="middle" font-size="10" fill="#8A8478" data-es="lo leería el sensor continuo propuesto · ver § 02" data-en="the proposed continuous sensor would read this · see § 02">lo leería el sensor continuo propuesto · ver § 02</text>
+      </g>
+
+      <line x1="70" y1="30" x2="70" y2="150" stroke="#C9C4B8" stroke-width="1"/>
+      <line x1="70" y1="150" x2="880" y2="150" stroke="#C9C4B8" stroke-width="1"/>
+      <text x="78" y="22" text-anchor="start" font-size="11" fill="#5C5750" font-weight="500" data-es="Biodiversidad — puntaje compuesto 0–10" data-en="Biodiversity — composite score 0–10">Biodiversidad — puntaje compuesto 0–10</text>
+      <text x="65" y="34" text-anchor="end" font-size="10" fill="#8A8478">10</text>
+      <text x="65" y="93" text-anchor="end" font-size="10" fill="#8A8478">5</text>
+      <text x="65" y="153" text-anchor="end" font-size="10" fill="#8A8478">0</text>
+
+      <line x1="70" y1="180" x2="70" y2="300" stroke="#C9C4B8" stroke-width="1"/>
+      <line x1="70" y1="300" x2="880" y2="300" stroke="#C9C4B8" stroke-width="1"/>
+      <text id="s1-chem-label" x="78" y="172" text-anchor="start" font-size="11" fill="#5C5750" font-weight="500" data-es="Química del agua — cobre µg/L, umbral normativo" data-en="Water chemistry — copper µg/L, regulatory threshold">Química del agua — cobre µg/L, umbral normativo</text>
+      <text id="s1-chem-y1" x="65" y="184" text-anchor="end" font-size="10" fill="#8A8478">200</text>
+      <text id="s1-chem-y2" x="65" y="244" text-anchor="end" font-size="10" fill="#8A8478">100</text>
+      <text id="s1-chem-y3" x="65" y="304" text-anchor="end" font-size="10" fill="#8A8478">0</text>
+      <line id="s1-thresh-line" x1="70" y1="270" x2="880" y2="270" stroke="#A32D2D" stroke-width="1" stroke-dasharray="4,3" opacity="0.55"/>
+      <line id="s1-thresh-line2" x1="70" y1="270" x2="880" y2="270" stroke="#A32D2D" stroke-width="1" stroke-dasharray="4,3" opacity="0" />
+      <text id="s1-thresh-label" x="876" y="266" text-anchor="end" font-size="10" fill="#A32D2D" data-es="umbral 50 µg/L (norma Cl.)" data-en="threshold 50 µg/L (Chilean norm)">umbral 50 µg/L (norma Cl.)</text>
+
+      <text x="78" y="322" text-anchor="start" font-size="11" fill="#5C5750" font-weight="500" data-es="Eventos documentados — industria, prensa, SMA + reportes ciudadanos" data-en="Documented events — industry, press, SMA + community reports">Eventos documentados — industria, prensa, SMA + reportes ciudadanos</text>
+
+      <g font-size="10" fill="#8A8478">
+        <text x="70" y="510" text-anchor="middle">2018</text>
+        <text x="165.29" y="510" text-anchor="middle">2019</text>
+        <text x="260.59" y="510" text-anchor="middle">2020</text>
+        <text x="355.88" y="510" text-anchor="middle">2021</text>
+        <text x="451.18" y="510" text-anchor="middle">2022</text>
+        <text x="546.47" y="510" text-anchor="middle">2023</text>
+        <text x="641.76" y="510" text-anchor="middle">2024</text>
+        <text x="737.06" y="510" text-anchor="middle">2025</text>
+        <text x="832.35" y="510" text-anchor="middle">2026</text>
+      </g>
+
+      <polyline id="bio-line" fill="none" stroke="#1D9E75" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" points=""/>
+      <g id="bio-dots"></g>
+
+      <polyline id="chem-line" fill="none" stroke="#2A78D6" stroke-width="1.2" opacity="0.7" points=""/>
+      <g id="chem-dots"></g>
+
+      <g>
+        <circle cx="130.88" cy="370" r="4.5" fill="#C84628"/>
+        <text x="130.88" y="395" text-anchor="middle" font-size="10" font-weight="500" fill="#14140F">21 ago 2018</text>
+        <text x="130.88" y="408" text-anchor="middle" font-size="10" fill="#5C5750" data-es="Intoxicación masiva, La Greda" data-en="Mass intoxication, La Greda">Intoxicación masiva, La Greda</text>
+        <text x="130.88" y="420" text-anchor="middle" font-size="9" fill="#8A8478" font-style="italic" data-es="SMA · prensa" data-en="SMA · press">SMA · prensa</text>
+      </g>
+      <g>
+        <circle cx="180.12" cy="370" r="4.5" fill="#C84628"/>
+        <text x="180.12" y="442" text-anchor="middle" font-size="10" font-weight="500" fill="#14140F">27 feb 2019</text>
+        <text x="180.12" y="455" text-anchor="middle" font-size="10" fill="#5C5750" data-es="Pico SO₂, refinería" data-en="SO₂ spike, refinery">Pico SO₂, refinería</text>
+        <text x="180.12" y="467" text-anchor="middle" font-size="9" fill="#8A8478" font-style="italic">SMA</text>
+        <line x1="180.12" y1="374" x2="180.12" y2="432" stroke="#C9C4B8" stroke-width="0.5" stroke-dasharray="1,2"/>
+      </g>
+      <g>
+        <circle cx="302.12" cy="370" r="4.5" fill="#C84628"/>
+        <text x="302.12" y="395" text-anchor="middle" font-size="10" font-weight="500" fill="#14140F">8 jun 2020</text>
+        <text x="302.12" y="408" text-anchor="middle" font-size="10" fill="#5C5750" data-es="Mortandad de peces" data-en="Fish kill">Mortandad de peces</text>
+        <text x="302.12" y="420" text-anchor="middle" font-size="9" fill="#8A8478" font-style="italic" data-es="prensa local" data-en="local press">prensa local</text>
+      </g>
+      <g>
+        <circle cx="534.30" cy="370" r="4.5" fill="#C84628"/>
+        <text x="534.30" y="395" text-anchor="middle" font-size="10" font-weight="500" fill="#14140F">15 nov 2022</text>
+        <text x="534.30" y="408" text-anchor="middle" font-size="10" fill="#5C5750" data-es="Pluma de sedimento, ENAP" data-en="Sediment plume, ENAP">Pluma de sedimento, ENAP</text>
+        <text x="534.30" y="420" text-anchor="middle" font-size="9" fill="#8A8478" font-style="italic">DIRECTEMAR</text>
+      </g>
+      <g>
+        <circle cx="805.07" cy="370" r="4.5" fill="#C84628"/>
+        <text x="805.07" y="395" text-anchor="middle" font-size="10" font-weight="500" fill="#14140F">18 sep 2025</text>
+        <text x="805.07" y="408" text-anchor="middle" font-size="10" fill="#5C5750" data-es="Episodio SO₂, escuela" data-en="SO₂ episode, school">Episodio SO₂, escuela</text>
+        <text x="805.07" y="420" text-anchor="middle" font-size="9" fill="#8A8478" font-style="italic">SMA</text>
+      </g>
+
+      <g id="annot-2022">
+        <line x1="585" y1="100" x2="630" y2="60" stroke="#5C5750" stroke-width="0.8"/>
+        <circle cx="585" cy="100" r="2.5" fill="#5C5750"/>
+        <rect x="628" y="40" width="220" height="42" rx="3" fill="#FFFFFF" stroke="#C9C4B8" stroke-width="0.5"/>
+        <text x="638" y="55" font-size="10" font-weight="500" fill="#14140F" data-es="Caída de 1,4 puntos tras Nov 2022" data-en="Drop of 1.4 points after Nov 2022">Caída de 1,4 puntos tras Nov 2022</text>
+        <text x="638" y="71" font-size="10" fill="#5C5750" data-es="señal solo visible al cruzar pistas" data-en="signal only visible by crossing tracks">señal solo visible al cruzar pistas</text>
+      </g>
+
+      <g id="annot-gap">
+        <line x1="805" y1="272" x2="730" y2="320" stroke="#5C5750" stroke-width="0.8"/>
+        <circle cx="805" cy="272" r="2.5" fill="#5C5750"/>
+        <rect x="500" y="307" width="232" height="42" rx="3" fill="#FFFFFF" stroke="#C9C4B8" stroke-width="0.5"/>
+        <text x="510" y="322" font-size="10" font-weight="500" fill="#14140F" data-es="Evento del 18 sep cae en hueco de 29 días" data-en="18 Sep event falls in 29-day gap">Evento del 18 sep cae en hueco de 29 días</text>
+        <text x="510" y="338" font-size="10" fill="#5C5750" data-es="entre muestras del 5 sep y 4 oct — no detectado" data-en="between 5 Sep and 4 Oct samples — undetected">entre muestras del 5 sep y 4 oct — no detectado</text>
+      </g>
+
+      <text x="876" y="568" text-anchor="end" font-size="10" fill="#8A8478" font-style="italic" data-es="Datos sintéticos · estructura basada en Curaz-Leiva et al. 2026 y registro SMA" data-en="Synthetic data · structure based on Curaz-Leiva et al. 2026 and SMA registry">Datos sintéticos · estructura basada en Curaz-Leiva et al. 2026 y registro SMA</text>
+
+      <g id="event-hits">
+        <rect data-idx="0" x="119" y="30" width="24" height="460" fill="transparent" style="cursor:pointer" onclick="showEventDetails(0)"><title data-es="21 ago 2018 · La Greda" data-en="21 Aug 2018 · La Greda">21 ago 2018 · La Greda</title></rect>
+        <rect data-idx="1" x="168" y="30" width="24" height="460" fill="transparent" style="cursor:pointer" onclick="showEventDetails(1)"><title data-es="27 feb 2019 · SO₂ refinería" data-en="27 Feb 2019 · SO₂ refinery">27 feb 2019 · SO₂ refinería</title></rect>
+        <rect data-idx="2" x="290" y="30" width="24" height="460" fill="transparent" style="cursor:pointer" onclick="showEventDetails(2)"><title data-es="8 jun 2020 · mortandad" data-en="8 Jun 2020 · fish kill">8 jun 2020 · mortandad</title></rect>
+        <rect data-idx="3" x="522" y="30" width="24" height="460" fill="transparent" style="cursor:pointer" onclick="showEventDetails(3)"><title data-es="15 nov 2022 · ENAP" data-en="15 Nov 2022 · ENAP">15 nov 2022 · ENAP</title></rect>
+        <rect data-idx="4" x="793" y="30" width="24" height="460" fill="transparent" style="cursor:pointer" onclick="showEventDetails(4)"><title data-es="18 sep 2025 · SO₂ escuela" data-en="18 Sep 2025 · SO₂ school">18 sep 2025 · SO₂ escuela</title></rect>
+      </g>
+    </svg>
+
+    <div class="event-chip-row" id="event-chip-row">
+      <span class="event-chip-row-label" data-es="Eventos" data-en="Events">Eventos</span>
+      <button class="event-chip" data-idx="0" onclick="showEventDetails(0)">21 ago 2018</button>
+      <button class="event-chip" data-idx="1" onclick="showEventDetails(1)">27 feb 2019</button>
+      <button class="event-chip" data-idx="2" onclick="showEventDetails(2)">8 jun 2020</button>
+      <button class="event-chip" data-idx="3" onclick="showEventDetails(3)">15 nov 2022</button>
+      <button class="event-chip" data-idx="4" onclick="showEventDetails(4)">18 sep 2025</button>
+    </div>
+  </div>
+
+  <div class="event-panel empty" id="event-panel">
+    <span data-es="Haz clic en cualquier banda coral del gráfico — o cualquier chip de arriba — para abrir un evento documentado." data-en="Click any coral band on the chart — or any chip above — to open a documented event.">Haz clic en cualquier banda coral del gráfico — o cualquier chip de arriba — para abrir un evento documentado.</span>
+  </div>
+
+  <div class="dek">
+    <h1 class="headline" data-es="Dos sistemas miran la misma agua. No se hablan." data-en="Two systems watch the same water. They don't talk to each other.">Dos sistemas miran la misma agua. No se hablan.</h1>
+    <p class="standfirst" data-es="La biodiversidad del refugio, la química del agua, y los eventos industriales — por primera vez en un solo eje. Lo que ninguno muestra solo, los tres juntos sí." data-en="The refuge's biodiversity, the water's chemistry, and the industrial events — for the first time on one axis. What none of them shows alone, the three together do.">La biodiversidad del refugio, la química del agua, y los eventos industriales — por primera vez en un solo eje. Lo que ninguno muestra solo, los tres juntos sí.</p>
+  </div>
+
+  <div class="read-grid">
+    <div class="read-card">
+      <div class="read-num">— 01</div>
+      <div class="read-title" data-es="Siete años sin química" data-en="Seven years without chemistry">Siete años sin química</div>
+      <div class="read-body" data-es="Hasta abril 2025 el refugio acumuló datos de biodiversidad sin química que los explicara. El silo es la historia." data-en="Until April 2025 the refuge accumulated biodiversity data with no chemistry to explain it. The silo is the story.">Hasta abril 2025 el refugio acumuló datos de biodiversidad sin química que los explicara. El silo es la historia.</div>
+    </div>
+    <div class="read-card">
+      <div class="read-num">— 02</div>
+      <div class="read-title" data-es="Eventos vs muestreo mensual" data-en="Events vs monthly sampling">Eventos vs muestreo mensual</div>
+      <div class="read-body" data-es="El evento del 18 de septiembre cayó entre dos muestras. Un sensor continuo lo habría capturado." data-en="The 18 September event fell between two samples. Continuous sensing would have caught it.">El evento del 18 de septiembre cayó entre dos muestras. Un sensor continuo lo habría capturado.</div>
+    </div>
+    <div class="read-card">
+      <div class="read-num">— 03</div>
+      <div class="read-title" data-es="La caleta también ve" data-en="The caleta sees too">La caleta también ve</div>
+      <div class="read-body" data-es="Pescadores, buzos, vecinos: lo que ustedes reportan en § 03 aparece como marca púrpura en este mismo gráfico." data-en="Fishers, divers, neighbors: what you report in § 03 appears as a purple mark on this same chart.">Pescadores, buzos, vecinos: lo que ustedes reportan en § 03 aparece como marca púrpura en este mismo gráfico.</div>
+    </div>
+  </div>
+
+  <div class="next-actions">
+    <button class="action-btn primary" onclick="showScreen('event')" data-es="Acercarse al evento del 18 sep →" data-en="Zoom on the 18 Sep event →">Acercarse al evento del 18 sep →</button>
+    <button class="action-btn" onclick="showScreen('map')" data-es="Ver el mapa de la bahía" data-en="See the bay map">Ver el mapa de la bahía</button>
+    <button class="action-btn" onclick="showScreen('report')" data-es="Ver el boletín a la caleta" data-en="See the bulletin to the caleta">Ver el boletín a la caleta</button>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SCREEN 02 — EVENT ZOOM
+     ════════════════════════════════════════════════════════════════ -->
+<section class="screen" id="screen-event">
+  <div class="dek">
+    <span class="section-num" data-es="§ 02 · Acercamiento al evento" data-en="§ 02 · Zoom on the event">§ 02 · Acercamiento al evento</span>
+    <h1 class="headline" data-es="¿Qué frecuencia hacía falta para verlo?" data-en="What frequency would have caught it?">¿Qué frecuencia hacía falta para verlo?</h1>
+    <p class="standfirst" data-es="Mueva el control para cambiar la frecuencia de muestreo y vea si el episodio del 18 de septiembre habría aparecido en el registro químico." data-en="Move the control to change sampling frequency and see whether the 18 September episode would appear in the chemistry record.">Mueva el control para cambiar la frecuencia de muestreo y vea si el episodio del 18 de septiembre habría aparecido en el registro químico.</p>
+  </div>
+
+  <div class="event-info">
+    <span data-es="Episodio de SO₂ confirmado el 18 sep 2025, ~18:00. Escuela de Quintero evacuada. Fuente: registro SMA + prensa local. La pluma química en el agua es inferida — los datos puntuales aquí son sintéticos, la dinámica del evento es ilustrativa." data-en="SO₂ episode confirmed 18 Sep 2025, ~18:00. School in Quintero evacuated. Source: SMA registry + local press. The chemical plume in the water is inferred — the sample points are synthetic, the event dynamics are illustrative.">Episodio de SO₂ confirmado el 18 sep 2025, ~18:00. Escuela de Quintero evacuada. Fuente: registro SMA + prensa local. La pluma química en el agua es inferida — los datos puntuales aquí son sintéticos, la dinámica del evento es ilustrativa.</span>
+  </div>
+
+  <div class="param-tabs" id="s2-param-tabs">
+    <span class="param-group-label g-lab" data-es="Solo laboratorio · Díaz" data-en="Lab only · Díaz">Solo laboratorio · Díaz</span>
+    <button class="param-tab type-lab active" data-param="cobre" onclick="setParameter('cobre')"><span data-es="Cobre" data-en="Copper">Cobre</span> <span class="formula">Cu</span></button>
+    <button class="param-tab type-lab" data-param="arsenico" onclick="setParameter('arsenico')"><span data-es="Arsénico" data-en="Arsenic">Arsénico</span> <span class="formula">As</span></button>
+    <button class="param-tab type-lab" data-param="plomo" onclick="setParameter('plomo')"><span data-es="Plomo" data-en="Lead">Plomo</span> <span class="formula">Pb</span></button>
+    <span class="param-divider"></span>
+    <span class="param-group-label g-both" data-es="Ambos · lab + sensor" data-en="Both · lab + sensor">Ambos · lab + sensor</span>
+    <button class="param-tab type-both" data-param="pH" onclick="setParameter('pH')"><span data-es="pH" data-en="pH">pH</span></button>
+    <button class="param-tab type-both" data-param="oxigeno" onclick="setParameter('oxigeno')"><span data-es="Oxígeno disuelto" data-en="Dissolved oxygen">Oxígeno disuelto</span> <span class="formula">O₂</span></button>
+    <button class="param-tab type-both" data-param="temperatura" onclick="setParameter('temperatura')"><span data-es="Temperatura" data-en="Temperature">Temperatura</span> <span class="formula">°C</span></button>
+    <span class="param-divider"></span>
+    <span class="param-group-label g-sensor" data-es="Solo sensor · Gene/MBARI (propuesto)" data-en="Sensor only · Gene/MBARI (proposed)">Solo sensor · Gene/MBARI (propuesto)</span>
+    <button class="param-tab type-sensor" data-param="clorofila" onclick="setParameter('clorofila')"><span data-es="Clorofila-a" data-en="Chlorophyll-a">Clorofila-a</span> <span class="formula">µg/L</span></button>
+    <button class="param-tab type-sensor" data-param="turbidez" onclick="setParameter('turbidez')"><span data-es="Turbidez" data-en="Turbidity">Turbidez</span> <span class="formula">NTU</span></button>
+    <button class="param-tab type-sensor" data-param="pCO2" onclick="setParameter('pCO2')"><span data-es="pCO₂" data-en="pCO₂">pCO₂</span> <span class="formula">µatm</span></button>
+  </div>
+  <div class="param-desc" id="s2-param-desc"></div>
+
+  <div class="ctrl-card">
+    <div class="ctrl-row">
+      <span class="ctrl-label" data-es="Intervalo de muestreo" data-en="Sampling interval">Intervalo de muestreo</span>
+      <input type="range" id="freq" min="0" max="7" step="1" value="0">
+      <span class="freq-out" id="freq-out">—</span>
+    </div>
+  </div>
+
+  <div class="source-row">
+    <span class="src-chip"><span class="src-dot" style="background: var(--sensor);"></span><span data-es="Sensor continuo (simulado)" data-en="Continuous sensor (simulated)">Sensor continuo (simulado)</span></span>
+    <span class="src-chip"><span class="src-dot" style="background: var(--chem);"></span><span data-es="Muestras puntuales" data-en="Discrete samples">Muestras puntuales</span></span>
+    <span class="src-chip"><span class="src-dot" style="background: var(--event);"></span><span data-es="Evento documentado" data-en="Documented event">Evento documentado</span></span>
+  </div>
+
+  <div class="chart-card">
+    <svg viewBox="0 0 900 360" width="100%" role="img" aria-label="Bay parameter, Sep 1 to Oct 6 2025">
+
+      <rect x="70" y="30" width="810" height="270" fill="#FAF8F2" rx="2"/>
+
+      <line x1="70" y1="30" x2="70" y2="300" stroke="#C9C4B8" stroke-width="1"/>
+      <line x1="70" y1="300" x2="880" y2="300" stroke="#C9C4B8" stroke-width="1"/>
+
+      <text id="s2-y-title" x="62" y="22" font-size="11" fill="#14140F" font-weight="500" data-es="Cobre en agua (µg/L)" data-en="Copper in water (µg/L)">Cobre en agua (µg/L)</text>
+
+      <text id="s2-y1" x="65" y="34" text-anchor="end" font-size="10" fill="#8A8478">160</text>
+      <text id="s2-y2" x="65" y="89" text-anchor="end" font-size="10" fill="#8A8478">120</text>
+      <text id="s2-y3" x="65" y="156" text-anchor="end" font-size="10" fill="#8A8478">80</text>
+      <text id="s2-y4" x="65" y="215" text-anchor="end" font-size="10" fill="#8A8478">50</text>
+      <text id="s2-y5" x="65" y="304" text-anchor="end" font-size="10" fill="#8A8478">0</text>
+
+      <line id="s2-thresh-line" x1="70" y1="215" x2="880" y2="215" stroke="#A32D2D" stroke-width="1" stroke-dasharray="4,3" opacity="0.55"/>
+      <line id="s2-thresh-line2" x1="70" y1="215" x2="880" y2="215" stroke="#A32D2D" stroke-width="1" stroke-dasharray="4,3" opacity="0"/>
+      <text id="s2-thresh-label" x="876" y="211" text-anchor="end" font-size="10" fill="#A32D2D" data-es="umbral 50 µg/L" data-en="threshold 50 µg/L">umbral 50 µg/L</text>
+
+      <g font-size="10" fill="#8A8478">
+        <text x="70" y="320" text-anchor="middle">1 sep</text>
+        <text x="232" y="320" text-anchor="middle">8 sep</text>
+        <text x="394" y="320" text-anchor="middle">15 sep</text>
+        <text x="556" y="320" text-anchor="middle">22 sep</text>
+        <text x="718" y="320" text-anchor="middle">29 sep</text>
+        <text x="880" y="320" text-anchor="middle">6 oct</text>
+      </g>
+      <g stroke="#E5E1D8" stroke-width="0.5" opacity="0.7">
+        <line x1="232" y1="30" x2="232" y2="300"/>
+        <line x1="394" y1="30" x2="394" y2="300"/>
+        <line x1="556" y1="30" x2="556" y2="300"/>
+        <line x1="718" y1="30" x2="718" y2="300"/>
+      </g>
+
+      <rect x="463" y="30" width="2" height="270" fill="#C84628" opacity="0.45"/>
+      <polygon points="464,30 458,18 470,18" fill="#C84628"/>
+      <text x="464" y="13" text-anchor="middle" font-size="10" font-weight="500" fill="#C84628" data-es="evento · 18 sep 18:00" data-en="event · 18 Sep 18:00">evento · 18 sep 18:00</text>
+
+      <polyline id="true-line" fill="none" stroke="#D68A1A" stroke-width="1.5" opacity="0.55" stroke-linejoin="round" points=""/>
+
+      <g id="samples"></g>
+      <g id="capture-marker"></g>
+    </svg>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <div class="lbl" data-es="Pico capturado" data-en="Peak captured">Pico capturado</div>
+      <div class="val" id="captured-val">—</div>
+    </div>
+    <div class="stat amber">
+      <div class="lbl" data-es="Pico real" data-en="True peak">Pico real</div>
+      <div class="val" id="true-val">142</div>
+    </div>
+    <div class="stat">
+      <div class="lbl" data-es="Cobertura" data-en="Recovery">Cobertura</div>
+      <div class="val" id="recovery-val">—</div>
+    </div>
+  </div>
+
+  <div class="verdict" id="verdict">
+    <div class="verdict-title" id="verdict-title">—</div>
+    <div class="verdict-body" id="verdict-body">—</div>
+  </div>
+
+  <div class="next-actions">
+    <button class="action-btn primary" onclick="showScreen('map')" data-es="Ver el mapa de la bahía →" data-en="See the bay map →">Ver el mapa de la bahía →</button>
+    <button class="action-btn" onclick="showScreen('timeline')" data-es="Volver a la línea de tiempo" data-en="Back to the timeline">Volver a la línea de tiempo</button>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SCREEN 03 — MAP, NETWORK, COMMUNITY REPORTS
+     ════════════════════════════════════════════════════════════════ -->
+<section class="screen" id="screen-map">
+  <div class="dek">
+    <span class="section-num" data-es="§ 03 · El mapa de la bahía" data-en="§ 03 · The bay map">§ 03 · El mapa de la bahía</span>
+    <h1 class="headline" data-es="Quién mira el agua. Dónde. Y si los datos vuelven." data-en="Who watches the water. Where. And whether the data comes back.">Quién mira el agua. Dónde. Y si los datos vuelven.</h1>
+    <p class="standfirst" data-es="Bajo cada punto hay una decisión: qué se mide, cada cuánto, y quién puede verlo. La fragmentación es geográfica antes que política." data-en="Under each point there is a decision: what is measured, how often, and who can see it. The fragmentation is geographic before it is political.">Bajo cada punto hay una decisión: qué se mide, cada cuánto, y quién puede verlo. La fragmentación es geográfica antes que política.</p>
+  </div>
+
+  <div class="mode-banner" id="pick-mode-banner">
+    <span data-es="Modo selección: haz clic en el mapa donde ocurrió lo que reportas." data-en="Pick mode: click on the map where what you report happened.">Modo selección: haz clic en el mapa donde ocurrió lo que reportas.</span>
+    <button class="action-btn" style="margin-left:auto;padding:3px 10px;font-size:11px" onclick="cancelPickLocation()" data-es="Cancelar" data-en="Cancel">Cancelar</button>
+  </div>
+
+  <div class="map-card">
+    <div id="bay-map"></div>
+    <div class="map-legend">
+      <label><input type="checkbox" id="layer-refuge" checked><span class="legend-dot" style="background:var(--refuge)"></span><span data-es="Refugio (11,9 ha)" data-en="Refuge (11.9 ha)">Refugio (11,9 ha)</span></label>
+      <label><input type="checkbox" id="layer-chem" checked><span class="legend-dot" style="background:var(--chem)"></span><span data-es="Estaciones de química · Díaz (PUCV/UPLA)" data-en="Chemistry stations · Díaz (PUCV/UPLA)">Estaciones de química · Díaz (PUCV/UPLA)</span></label>
+      <label><input type="checkbox" id="layer-bio" checked><span class="legend-dot" style="background:var(--bio)"></span><span data-es="Transectos de biodiversidad · refugio" data-en="Biodiversity transects · refuge">Transectos de biodiversidad · refugio</span></label>
+      <label><input type="checkbox" id="layer-sensor" checked><span class="legend-dot" style="background:var(--sensor)"></span><span data-es="Sensor continuo (propuesto · MBARI)" data-en="Continuous sensor (proposed · MBARI)">Sensor continuo (propuesto · MBARI)</span></label>
+      <label><input type="checkbox" id="layer-industry" checked><span class="legend-dot" style="background:#7f1d1d"></span><span data-es="Fuentes industriales" data-en="Industrial sources">Fuentes industriales</span></label>
+      <label><input type="checkbox" id="layer-community" checked><span class="legend-dot" style="background:var(--community)"></span><span data-es="Reportes ciudadanos" data-en="Community reports">Reportes ciudadanos</span></label>
+    </div>
+  </div>
+
+  <span class="section-num" data-es="§ 03 a · ¿Vio algo en la bahía?" data-en="§ 03 a · Saw something in the bay?">§ 03 a · ¿Vio algo en la bahía?</span>
+  <p class="standfirst italic" style="margin-bottom:20px" data-es="Pescadores, buzos, vecinos: ustedes ven la bahía todos los días. Lo que reporten aquí se suma al mapa de arriba y al gráfico de § 01 — entra al mismo cuadro que la química y la biodiversidad." data-en="Fishers, divers, neighbors: you see the bay every day. What you report here joins the map above and the § 01 chart — it enters the same picture as the chemistry and biodiversity.">Pescadores, buzos, vecinos: ustedes ven la bahía todos los días. Lo que reporten aquí se suma al mapa de arriba y al gráfico de § 01 — entra al mismo cuadro que la química y la biodiversidad.</p>
+
+  <form class="report-form" id="report-form" onsubmit="submitReport(event)">
+    <div class="row2">
+      <div class="field">
+        <label for="r-when" data-es="Cuándo" data-en="When">Cuándo</label>
+        <input type="datetime-local" id="r-when" required>
+      </div>
+      <div class="field">
+        <label for="r-type" data-es="Qué viste" data-en="What you saw">Qué viste</label>
+        <select id="r-type" required>
+          <option value="" data-es="—" data-en="—">—</option>
+          <option value="smell" data-es="Olor a gas o químico" data-en="Gas or chemical smell">Olor a gas o químico</option>
+          <option value="fishkill" data-es="Peces u otros animales muertos" data-en="Dead fish or other animals">Peces u otros animales muertos</option>
+          <option value="color" data-es="Agua con color anómalo" data-en="Anomalous water color">Agua con color anómalo</option>
+          <option value="oil" data-es="Mancha de petróleo o aceite" data-en="Oil or petroleum slick">Mancha de petróleo o aceite</option>
+          <option value="smoke" data-es="Humo desde planta o chimenea" data-en="Smoke from plant or stack">Humo desde planta o chimenea</option>
+          <option value="health" data-es="Síntomas en personas (irritación, mareo)" data-en="Symptoms in people (irritation, dizziness)">Síntomas en personas</option>
+          <option value="other" data-es="Otro" data-en="Other">Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label data-es="Dónde (marca el punto en el mapa)" data-en="Where (mark the point on the map)">Dónde (marca el punto en el mapa)</label>
+      <button type="button" class="pick-loc-btn" id="pick-loc-btn" onclick="startPickLocation()" data-es="Marcar ubicación en el mapa →" data-en="Pick location on the map →">Marcar ubicación en el mapa →</button>
+    </div>
+    <div class="field">
+      <label for="r-notes" data-es="Descripción" data-en="Description">Descripción</label>
+      <textarea id="r-notes" placeholder="..."></textarea>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="r-reporter" data-es="Tu nombre o caleta (opcional)" data-en="Your name or caleta (optional)">Tu nombre o caleta (opcional)</label>
+        <input type="text" id="r-reporter">
+      </div>
+      <div class="field">
+        <label data-es="" data-en="">&nbsp;</label>
+        <button type="submit" class="action-btn primary" style="width:100%" data-es="Enviar reporte" data-en="Submit report">Enviar reporte</button>
+      </div>
+    </div>
+    <p class="field-help" data-es="Los reportes son visibles para todos los visitantes del sitio, no solo en este dispositivo. Aparecen en el mapa y en el gráfico § 01 al instante." data-en="Reports are visible to everyone who visits the site, not just on this device. They appear on the map and the § 01 chart instantly.">Los reportes son visibles para todos los visitantes del sitio, no solo en este dispositivo. Aparecen en el mapa y en el gráfico § 01 al instante.</p>
+    <div class="report-status" id="report-status"></div>
+  </form>
+
+  <span class="section-num" style="margin-top:8px" data-es="§ 03 b · Quién mide qué" data-en="§ 03 b · Who measures what">§ 03 b · Quién mide qué</span>
+  <p class="standfirst italic" style="margin-bottom:18px" data-es="El argumento central — dos sistemas que no se hablan — vive en esta tabla. La última columna es la que más cuesta cambiar." data-en="The central argument — two systems that don't talk — lives in this table. The last column is the hardest to change.">El argumento central — dos sistemas que no se hablan — vive en esta tabla. La última columna es la que más cuesta cambiar.</p>
+
+  <table class="network-table">
+    <thead>
+      <tr>
+        <th data-es="Actor" data-en="Actor">Actor</th>
+        <th data-es="Qué mide" data-en="What it measures">Qué mide</th>
+        <th data-es="Frecuencia" data-en="Frequency">Frecuencia</th>
+        <th data-es="¿Vuelve a la caleta?" data-en="Returns to caleta?">¿Vuelve a la caleta?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="actor">Refugio Ventanas · Capital Azul</td>
+        <td data-es="Scorecard de biodiversidad (peces, algas, invertebrados)" data-en="Biodiversity scorecard (fish, algae, invertebrates)">Scorecard de biodiversidad (peces, algas, invertebrados)</td>
+        <td data-es="Estacional · 7 años" data-en="Seasonal · 7 yrs">Estacional · 7 años</td>
+        <td class="public-yes" data-es="sí · este sitio" data-en="yes · this site">sí · este sitio</td>
+      </tr>
+      <tr>
+        <td class="actor">PUCV / UPLA · M. J. Díaz</td>
+        <td data-es="Metales pesados, nutrientes en agua" data-en="Heavy metals, nutrients in water">Metales pesados, nutrientes en agua</td>
+        <td data-es="Mensual · desde abr 2025" data-en="Monthly · since Apr 2025">Mensual · desde abr 2025</td>
+        <td class="public-partial" data-es="parcial · publicación científica" data-en="partial · scientific publication">parcial · publicación científica</td>
+      </tr>
+      <tr>
+        <td class="actor">SMA</td>
+        <td data-es="Cumplimiento industrial (PVA · aire, agua)" data-en="Industrial compliance (PVA · air, water)">Cumplimiento industrial (PVA · aire, agua)</td>
+        <td data-es="Según resolución" data-en="Per resolution">Según resolución</td>
+        <td class="public-partial" data-es="portal SMA · técnico" data-en="SMA portal · technical">portal SMA · técnico</td>
+      </tr>
+      <tr>
+        <td class="actor">DIRECTEMAR (Armada)</td>
+        <td data-es="Eventos, derrames, fiscalización marítima" data-en="Events, spills, maritime enforcement">Eventos, derrames, fiscalización marítima</td>
+        <td data-es="Reactivo" data-en="Reactive">Reactivo</td>
+        <td class="public-no" data-es="no" data-en="no">no</td>
+      </tr>
+      <tr>
+        <td class="actor">ASIVA (industria)</td>
+        <td data-es="Autorreporte de operación, aire local" data-en="Self-reported operations, local air">Autorreporte de operación, aire local</td>
+        <td data-es="Variable" data-en="Variable">Variable</td>
+        <td class="public-partial" data-es="agregado · convenio CRAS" data-en="aggregated · CRAS agreement">agregado · convenio CRAS</td>
+      </tr>
+      <tr>
+        <td class="actor">Gene/MBARI (propuesto)</td>
+        <td data-es="EOVs continuos: T, salinidad, O₂, pH, nutrientes, clorofila-a, turbidez, pCO₂, acústica" data-en="Continuous EOVs: T, salinity, O₂, pH, nutrients, chlorophyll-a, turbidity, pCO₂, acoustics">EOVs continuos: T, salinidad, O₂, pH, nutrientes, clorofila-a, turbidez, pCO₂, acústica</td>
+        <td data-es="15 min · 24/7 · plataforma abierta (hOBS)" data-en="15 min · 24/7 · open platform (hOBS)">15 min · 24/7 · plataforma abierta (hOBS)</td>
+        <td class="public-yes" data-es="sí · Ocean Data View + código abierto" data-en="yes · Ocean Data View + open source">sí · Ocean Data View + código abierto</td>
+      </tr>
+      <tr>
+        <td class="actor" data-es="La caleta y vecinos" data-en="The caleta and neighbors">La caleta y vecinos</td>
+        <td data-es="Lo que ven, huelen, encuentran" data-en="What they see, smell, find">Lo que ven, huelen, encuentran</td>
+        <td data-es="Continuo · vida cotidiana" data-en="Continuous · daily life">Continuo · vida cotidiana</td>
+        <td class="public-yes" data-es="sí · esta plataforma" data-en="yes · this platform">sí · esta plataforma</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <span class="section-num" style="margin-top:32px" data-es="§ 03 c · Conectarse con la red" data-en="§ 03 c · Connect with the network">§ 03 c · Conectarse con la red</span>
+  <div class="cta-grid">
+    <div class="cta-card">
+      <div class="cta-eyebrow" data-es="Sindicato Caleta Ventanas" data-en="Caleta Ventanas Union">Sindicato Caleta Ventanas</div>
+      <div class="cta-title" data-es="Únete al monitoreo de biodiversidad" data-en="Join the biodiversity monitoring">Únete al monitoreo de biodiversidad</div>
+      <div class="cta-body" data-es="Buzos y pescadores entrenados en el scorecard del refugio. Acompañar es la mejor forma de aprenderlo." data-en="Divers and fishers trained in the refuge scorecard. The best way to learn it is to come along.">Buzos y pescadores entrenados en el scorecard del refugio. Acompañar es la mejor forma de aprenderlo.</div>
+      <a class="cta-link" href="mailto:contacto@capitalazul.org" data-es="contacto@capitalazul.org →" data-en="contacto@capitalazul.org →">contacto@capitalazul.org →</a>
+    </div>
+    <div class="cta-card">
+      <div class="cta-eyebrow" data-es="Investigadores · estudiantes" data-en="Researchers · students">Investigadores · estudiantes</div>
+      <div class="cta-title" data-es="Acceso a los datos abiertos" data-en="Access the open data">Acceso a los datos abiertos</div>
+      <div class="cta-body" data-es="Series completas de biodiversidad, química publicada por Díaz et al., y eventos. Para tesis, papers, o reanálisis." data-en="Full biodiversity series, chemistry published by Díaz et al., and events. For theses, papers, or reanalysis.">Series completas de biodiversidad, química publicada por Díaz et al., y eventos. Para tesis, papers, o reanálisis.</div>
+      <a class="cta-link" href="#" data-es="solicitar acceso →" data-en="request access →">solicitar acceso →</a>
+    </div>
+    <div class="cta-card">
+      <div class="cta-eyebrow" data-es="Escuelas · educación ambiental" data-en="Schools · environmental education">Escuelas · educación ambiental</div>
+      <div class="cta-title" data-es="Lleva la bahía al aula" data-en="Bring the bay to the classroom">Lleva la bahía al aula</div>
+      <div class="cta-body" data-es="Material descargable basado en el scorecard y el boletín. Visitas guiadas al muelle y al refugio." data-en="Downloadable material based on the scorecard and bulletin. Guided visits to the pier and refuge.">Material descargable basado en el scorecard y el boletín. Visitas guiadas al muelle y al refugio.</div>
+      <a class="cta-link" href="#" data-es="agendar visita →" data-en="book a visit →">agendar visita →</a>
+    </div>
+    <div class="cta-card">
+      <div class="cta-eyebrow" data-es="Industria · ASIVA · CRAS" data-en="Industry · ASIVA · CRAS">Industria · ASIVA · CRAS</div>
+      <div class="cta-title" data-es="Compartir datos de PVA" data-en="Share PVA data">Compartir datos de PVA</div>
+      <div class="cta-body" data-es="Si su empresa reporta a la SMA, los datos pueden conversar con esta línea de tiempo sin perder confidencialidad operacional." data-en="If your company reports to SMA, your data can converse with this timeline without losing operational confidentiality.">Si su empresa reporta a la SMA, los datos pueden conversar con esta línea de tiempo sin perder confidencialidad operacional.</div>
+      <a class="cta-link" href="#" data-es="iniciar conversación →" data-en="start a conversation →">iniciar conversación →</a>
+    </div>
+  </div>
+
+  <div class="next-actions">
+    <button class="action-btn" onclick="showScreen('timeline')" data-es="Volver a la línea de tiempo" data-en="Back to the timeline">Volver a la línea de tiempo</button>
+    <button class="action-btn primary" onclick="showScreen('report')" data-es="Ver el boletín →" data-en="See the bulletin →">Ver el boletín →</button>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     SCREEN 04 — BULLETIN
+     ════════════════════════════════════════════════════════════════ -->
+<section class="screen" id="screen-report">
+  <div class="dek">
+    <span class="section-num" data-es="§ 04 · El boletín a la caleta" data-en="§ 04 · The bulletin to the caleta">§ 04 · El boletín a la caleta</span>
+    <h1 class="headline" data-es="Datos que regresan, no datos que se extraen." data-en="Data that returns, not data that is extracted.">Datos que regresan, no datos que se extraen.</h1>
+    <p class="standfirst italic" data-es="Lo que sigue es la pieza que cierra el ciclo: un boletín trimestral que la caleta y la fundación entregan de vuelta a quienes hacen posible el monitoreo." data-en="What follows is the piece that closes the loop: a quarterly bulletin the caleta and the foundation hand back to those who make the monitoring possible.">Lo que sigue es la pieza que cierra el ciclo: un boletín trimestral que la caleta y la fundación entregan de vuelta a quienes hacen posible el monitoreo.</p>
+  </div>
+
+  <article class="bulletin">
+    <div class="bulletin-masthead">
+      <div class="bulletin-title" data-es="Boletín del Refugio" data-en="Refuge Bulletin">Boletín del Refugio</div>
+      <div class="bulletin-meta" data-es="Volumen 1 · Número 1 · Junio 2026 · Quintero-Puchuncaví" data-en="Volume 1 · Issue 1 · June 2026 · Quintero-Puchuncaví">Volumen 1 · Número 1 · Junio 2026 · Quintero-Puchuncaví</div>
+      <div class="bulletin-rule-thin"></div>
+    </div>
+
+    <p class="bulletin-lead" data-es="Este trimestre el refugio se mantiene en recuperación. Hubo un pico breve de cobre en mayo que <em>no se reflejó</em> en la biodiversidad observable. Los pulpos volvieron a aparecer en el sector norte." data-en="The refuge held its recovery this quarter. A brief copper spike in May <em>did not show up</em> in observable biodiversity. Octopus returned to the northern sector.">Este trimestre el refugio se mantiene en recuperación. Hubo un pico breve de cobre en mayo que <em>no se reflejó</em> en la biodiversidad observable. Los pulpos volvieron a aparecer en el sector norte.</p>
+
+    <div class="bulletin-byline" data-es="María José Díaz, química · Adán Fernández, monitor de biodiversidad · Sindicato Caleta Ventanas · Fundación Capital Azul" data-en="María José Díaz, chemistry · Adán Fernández, biodiversity monitor · Caleta Ventanas Union · Fundación Capital Azul">María José Díaz, química · Adán Fernández, monitor de biodiversidad · Sindicato Caleta Ventanas · Fundación Capital Azul</div>
+
+    <div class="bulletin-section-head" data-es="En números" data-en="In numbers">En números</div>
+
+    <div class="bulletin-stats">
+      <div class="bulletin-stat">
+        <div class="num">3</div>
+        <div class="lbl" data-es="muestras de química tomadas" data-en="chemistry samples taken">muestras de química tomadas</div>
+      </div>
+      <div class="bulletin-stat">
+        <div class="num">1</div>
+        <div class="lbl" data-es="episodio sobre umbral" data-en="episode above threshold">episodio sobre umbral</div>
+      </div>
+      <div class="bulletin-stat">
+        <div class="num">6.6</div>
+        <div class="lbl" data-es="puntaje biodiversidad ↑" data-en="biodiversity score ↑">puntaje biodiversidad ↑</div>
+      </div>
+    </div>
+
+    <div class="bulletin-section-head" data-es="Lo que vimos" data-en="What we saw">Lo que vimos</div>
+
+    <ol class="bulletin-findings">
+      <li class="bulletin-finding">
+        <strong data-es="La biodiversidad subió de 6,4 a 6,6 puntos" data-en="Biodiversity rose from 6.4 to 6.6 points">La biodiversidad subió de 6,4 a 6,6 puntos</strong>
+        <span data-es="Dos trimestres consecutivos al alza tras una breve baja en diciembre. El sector norte vuelve a registrar pulpos después de dos años sin avistamientos." data-en="Two quarters of rising scores in a row after a brief December dip. The north sector recorded octopus again after two years without sightings.">Dos trimestres consecutivos al alza tras una breve baja en diciembre. El sector norte vuelve a registrar pulpos después de dos años sin avistamientos.</span>
+      </li>
+      <li class="bulletin-finding">
+        <strong data-es="Pico de cobre el 4 de abril" data-en="Copper spike on 4 April">Pico de cobre el 4 de abril</strong>
+        <span data-es="74 µg/L sobre el umbral de 50. Un pico aislado en una muestra. No coincide con eventos industriales reportados a la SMA esa semana — investigaremos la fuente en el próximo trimestre." data-en="74 µg/L over the 50 µg/L threshold. An isolated spike in one sample. Does not match industrial events reported to SMA that week — we'll investigate the source next quarter.">74 µg/L sobre el umbral de 50. Un pico aislado en una muestra. No coincide con eventos industriales reportados a la SMA esa semana — investigaremos la fuente en el próximo trimestre.</span>
+      </li>
+      <li class="bulletin-finding">
+        <strong data-es="El sensor continuo entra en prueba" data-en="The continuous sensor begins testing">El sensor continuo entra en prueba</strong>
+        <span data-es="Junto con MBARI (EE.UU.) instalamos un prototipo en el muelle de la caleta. La idea es no perdernos los eventos breves que el muestreo mensual no alcanza a ver." data-en="Together with MBARI (USA) we installed a prototype on the caleta pier. The idea is not to miss the short events monthly sampling can't catch.">Junto con MBARI (EE.UU.) instalamos un prototipo en el muelle de la caleta. La idea es no perdernos los eventos breves que el muestreo mensual no alcanza a ver.</span>
+      </li>
+    </ol>
+
+    <div class="bulletin-section-head" data-es="Lo que seguimos mirando" data-en="What we keep watching">Lo que seguimos mirando</div>
+
+    <div class="bulletin-next">
+      <span data-es="<strong>Muestreo de química:</strong> continúa mensual, próxima salida 8 de julio. <strong>Biodiversidad:</strong> próximo monitoreo del scorecard en agosto. <strong>Sensor continuo:</strong> primer mes de datos en revisión, los resultados aparecerán en el próximo boletín. <strong>Origen del pico de abril:</strong> seguimos buscando." data-en="<strong>Chemistry sampling:</strong> continues monthly, next visit 8 July. <strong>Biodiversity:</strong> next scorecard monitoring in August. <strong>Continuous sensor:</strong> first month of data under review, results in the next bulletin. <strong>April spike origin:</strong> still investigating."><strong>Muestreo de química:</strong> continúa mensual, próxima salida 8 de julio. <strong>Biodiversidad:</strong> próximo monitoreo del scorecard en agosto. <strong>Sensor continuo:</strong> primer mes de datos en revisión, los resultados aparecerán en el próximo boletín. <strong>Origen del pico de abril:</strong> seguimos buscando.</span>
+    </div>
+
+    <div class="bulletin-foot">
+      <span data-es="Esta información viene del trabajo de la caleta, la Fundación Capital Azul, y el programa de monitoreo de María José Díaz (PUCV/UPLA). La compartimos con ustedes porque sus muestras, sus avistamientos, y su trabajo son los que la hacen posible. No es un informe de cumplimiento. Es lo que sabemos, devuelto." data-en="This information comes from the work of the caleta, Fundación Capital Azul, and María José Díaz's monitoring program (PUCV/UPLA). We share it with you because your samples, your sightings, and your work are what make it possible. It is not a compliance report. It is what we know, returned.">Esta información viene del trabajo de la caleta, la Fundación Capital Azul, y el programa de monitoreo de María José Díaz (PUCV/UPLA). La compartimos con ustedes porque sus muestras, sus avistamientos, y su trabajo son los que la hacen posible. No es un informe de cumplimiento. Es lo que sabemos, devuelto.</span>
+      <span class="sig" data-es="— el equipo del refugio · vol. 1 nº 1 · junio 2026" data-en="— the refuge team · vol. 1 no. 1 · June 2026">— el equipo del refugio · vol. 1 nº 1 · junio 2026</span>
+    </div>
+  </article>
+
+  <div class="next-actions" style="margin-top: 32px;">
+    <button class="action-btn" onclick="showScreen('timeline')" data-es="Volver a la línea de tiempo" data-en="Back to the timeline">Volver a la línea de tiempo</button>
+    <button class="action-btn" onclick="window.print()" data-es="Imprimir boletín" data-en="Print bulletin">Imprimir boletín</button>
+  </div>
+</section>
+
+</main>
+
+<footer class="app-footer">
+  <div data-es="<strong>La línea de tiempo, el mapa base y el boletín usan datos sintéticos de prototipo.</strong> Estructura basada en Curaz-Leiva et al. 2026 (metales pesados en Quintero-Puchuncaví), el scorecard del Refugio Marino Ventanas, y el registro público de eventos SMA. El programa de María José Díaz inició en abril 2025 (a confirmar). Los reportes ciudadanos sí son reales y quedan guardados de forma compartida para todos los visitantes." data-en="<strong>The timeline, base map, and bulletin use synthetic prototype data.</strong> Structure based on Curaz-Leiva et al. 2026 (heavy metals in Quintero-Puchuncaví), the Refugio Marino Ventanas scorecard, and the public SMA event registry. María José Díaz's program began in April 2025 (to confirm). Community reports are real and stored shared, for every visitor to see."><strong>La línea de tiempo, el mapa base y el boletín usan datos sintéticos de prototipo.</strong> Estructura basada en Curaz-Leiva et al. 2026 (metales pesados en Quintero-Puchuncaví), el scorecard del Refugio Marino Ventanas, y el registro público de eventos SMA. El programa de María José Díaz inició en abril 2025 (a confirmar). Los reportes ciudadanos sí son reales y quedan guardados de forma compartida para todos los visitantes.</div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ──────────────────────────────────────────────────────────
+// Supabase config — FILL THESE IN (see setup guide, step 3)
+// SUPABASE_URL   → Project Settings → API → "Project URL"
+// SUPABASE_ANON_KEY → Project Settings → API → "anon public" key
+// Both are safe to expose in client-side code — Row Level Security
+// (set up in the schema.sql) is what actually restricts what the
+// anon key is allowed to do (read everything, insert reports only).
+// ──────────────────────────────────────────────────────────
+const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+
+async function supabaseRequest(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Supabase request failed (${res.status}): ${body}`);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+// ──────────────────────────────────────────────────────────
+// Navigation + language
+// ──────────────────────────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.screen === name);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (name === 'map') {
+    setTimeout(() => { if (map) map.invalidateSize(); }, 100);
+  }
+}
+
+function toggleLang() {
+  const body = document.body;
+  const cur = body.dataset.lang === 'es' ? 'en' : 'es';
+  body.dataset.lang = cur;
+  document.documentElement.lang = cur;
+  document.querySelectorAll('[data-es][data-en]').forEach(el => {
+    const txt = el.dataset[cur];
+    if (txt.includes('<')) el.innerHTML = txt;
+    else el.textContent = txt;
+  });
+  document.getElementById('lang-btn').textContent = cur === 'es' ? 'EN' : 'ES';
+  renderChemistryTrack();
+  updateEventScreen();
+  renderParamDesc();
+  if (selectedEvent !== null) showEventDetails(selectedEvent);
+}
+
+// ──────────────────────────────────────────────────────────
+// Coordinates (Screen 1 timeline)
+// ──────────────────────────────────────────────────────────
+const X0 = 70, X1 = 880, PLOT_W = X1 - X0;
+const MONTHS_TOTAL = 102;
+function xt(year, month, day) {
+  const m = (year - 2018) * 12 + month + (day - 1) / 30;
+  return X0 + (m / MONTHS_TOTAL) * PLOT_W;
+}
+function yBio(score) { return 150 - (score / 10) * 120; }
+
+const bio = [
+  [2018,0,5.0],[2018,3,4.9],[2018,6,4.7],[2018,9,4.3],
+  [2019,0,3.8],[2019,3,3.5],[2019,6,3.6],[2019,9,3.9],
+  [2020,0,4.2],[2020,3,4.4],[2020,6,4.6],[2020,9,4.9],
+  [2021,0,5.2],[2021,3,5.5],[2021,6,5.7],[2021,9,5.9],
+  [2022,0,6.1],[2022,3,6.2],[2022,6,6.3],[2022,9,6.0],
+  [2023,0,4.8],[2023,3,4.6],[2023,6,5.0],[2023,9,5.3],
+  [2024,0,5.6],[2024,3,5.8],[2024,6,5.9],[2024,9,6.0],
+  [2025,0,6.1],[2025,3,6.2],[2025,6,6.3],[2025,9,5.9],
+  [2026,0,6.4],[2026,3,6.6]
+];
+const bioPts = bio.map(([y,m,v]) => `${xt(y,m,15).toFixed(1)},${yBio(v).toFixed(1)}`).join(' ');
+document.getElementById('bio-line').setAttribute('points', bioPts);
+const bioDots = document.getElementById('bio-dots');
+bio.forEach(([y,m,v]) => {
+  const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+  c.setAttribute('cx', xt(y,m,15).toFixed(1));
+  c.setAttribute('cy', yBio(v).toFixed(1));
+  c.setAttribute('r', '2');
+  c.setAttribute('fill', '#1D9E75');
+  bioDots.appendChild(c);
+});
+
+// ──────────────────────────────────────────────────────────
+// Parameters — lab (5) + continuous-only (4)
+// ──────────────────────────────────────────────────────────
+const CHEM_DATES = [
+  [2025,3,5], [2025,4,7], [2025,5,4], [2025,6,2],
+  [2025,7,6], [2025,8,5], [2025,9,4], [2025,10,3],
+  [2025,11,5], [2026,0,4], [2026,1,6], [2026,2,5],
+  [2026,3,4], [2026,4,5]
+];
+
+const PARAMETERS = {
+  cobre: {
+    type: 'lab',
+    yMin: 0, yMax: 200, s1_ticks: [0, 100, 200], s2_ticks: [0, 50, 80, 120, 200],
+    threshold: 50, upperThreshold: null, isRange: false, inverted: false,
+    threshLabel_es: 'umbral 50 µg/L (norma Cl.)', threshLabel_en: 'threshold 50 µg/L (Chilean norm)',
+    s1_label_es: 'Química del agua — cobre µg/L, umbral normativo', s1_label_en: 'Water chemistry — copper µg/L, regulatory threshold',
+    s2_title_es: 'Cobre en agua (µg/L)', s2_title_en: 'Copper in water (µg/L)',
+    desc_es: 'Metal pesado. Indicador de descargas industriales (fundición, refinería). No lo mide el sensor de Gene — se queda con el laboratorio.',
+    desc_en: 'Heavy metal. Indicator of industrial discharge (smelting, refining). Not measured by Gene\'s sensor — stays with the lab.',
+    values: [42, 58, 47, 63, 95, 48, 52, 71, 83, 56, 49, 68, 74, 55],
+    baseline: 45, eventMag: 97, decimals: 0
+  },
+  arsenico: {
+    type: 'lab',
+    yMin: 0, yMax: 80, s1_ticks: [0, 40, 80], s2_ticks: [0, 20, 30, 60, 80],
+    threshold: 30, upperThreshold: null, isRange: false, inverted: false,
+    threshLabel_es: 'umbral 30 µg/L (orientativo marino)', threshLabel_en: 'threshold 30 µg/L (marine guideline)',
+    s1_label_es: 'Química del agua — arsénico µg/L, umbral orientativo', s1_label_en: 'Water chemistry — arsenic µg/L, indicative threshold',
+    s2_title_es: 'Arsénico en agua (µg/L)', s2_title_en: 'Arsenic in water (µg/L)',
+    desc_es: 'Metal pesado. Vinculado a emisiones de fundición — central en Curaz-Leiva et al. 2026. Se queda con el laboratorio de Díaz.',
+    desc_en: 'Heavy metal. Tied to smelter emissions — central in Curaz-Leiva et al. 2026. Stays with Díaz\'s lab.',
+    values: [18, 22, 16, 28, 45, 24, 31, 38, 42, 19, 22, 28, 32, 25],
+    baseline: 22, eventMag: 38, decimals: 0
+  },
+  plomo: {
+    type: 'lab',
+    yMin: 0, yMax: 25, s1_ticks: [0, 12, 25], s2_ticks: [0, 5, 10, 18, 25],
+    threshold: 10, upperThreshold: null, isRange: false, inverted: false,
+    threshLabel_es: 'umbral 10 µg/L (orientativo)', threshLabel_en: 'threshold 10 µg/L (guideline)',
+    s1_label_es: 'Química del agua — plomo µg/L, umbral orientativo', s1_label_en: 'Water chemistry — lead µg/L, indicative threshold',
+    s2_title_es: 'Plomo en agua (µg/L)', s2_title_en: 'Lead in water (µg/L)',
+    desc_es: 'Metal pesado. Históricamente ligado a la zona; persistente en sedimentos. Se queda con el laboratorio.',
+    desc_en: 'Heavy metal. Historically linked to the area; persistent in sediments. Stays with the lab.',
+    values: [4, 6, 3, 5, 11, 4, 8, 9, 13, 5, 4, 7, 12, 5],
+    baseline: 5, eventMag: 13, decimals: 0
+  },
+  pH: {
+    type: 'both',
+    yMin: 7.0, yMax: 8.6, s1_ticks: [7.0, 7.8, 8.6], s2_ticks: [7.0, 7.6, 8.0, 8.4, 8.6],
+    threshold: 7.6, upperThreshold: 8.4, isRange: true, inverted: true,
+    threshLabel_es: 'rango aceptable 7,6 – 8,4', threshLabel_en: 'acceptable range 7.6 – 8.4',
+    s1_label_es: 'pH — lab mensual (Díaz) + sensor continuo (Gene/MBARI)', s1_label_en: 'pH — monthly lab (Díaz) + continuous sensor (Gene/MBARI)',
+    s2_title_es: 'pH del agua', s2_title_en: 'Water pH',
+    desc_es: 'Acidez del agua. Baja con deposición ácida — relevante para eventos SO₂. Lo miden ambos programas: Díaz mensual con muestra, Gene continuo con sensor.',
+    desc_en: 'Water acidity. Drops with acid deposition — relevant for SO₂ events. Both programs measure it: Díaz monthly by sample, Gene continuous by sensor.',
+    values: [8.0, 7.9, 8.0, 7.7, 8.1, 7.8, 7.5, 7.9, 7.8, 8.0, 7.9, 8.0, 7.7, 7.9],
+    baseline: 8.0, eventMag: 0.55, decimals: 1
+  },
+  oxigeno: {
+    type: 'both',
+    yMin: 0, yMax: 10, s1_ticks: [0, 5, 10], s2_ticks: [0, 3, 5, 7, 10],
+    threshold: 5, upperThreshold: null, isRange: false, inverted: true,
+    threshLabel_es: 'mínimo saludable 5 mg/L', threshLabel_en: 'healthy minimum 5 mg/L',
+    s1_label_es: 'Oxígeno disuelto — lab mensual (Díaz) + sensor continuo (Gene/MBARI)', s1_label_en: 'Dissolved oxygen — monthly lab (Díaz) + continuous sensor (Gene/MBARI)',
+    s2_title_es: 'Oxígeno disuelto (mg/L)', s2_title_en: 'Dissolved oxygen (mg/L)',
+    desc_es: 'Oxígeno en el agua. Baja con estrés biológico — indicador de hipoxia. Lo miden ambos programas.',
+    desc_en: 'Oxygen in water. Drops with biological stress — indicator of hypoxia. Both programs measure it.',
+    values: [7.2, 6.8, 7.5, 6.4, 5.2, 7.1, 4.8, 6.2, 5.5, 7.0, 7.3, 6.8, 5.9, 6.5],
+    baseline: 7.0, eventMag: 3.2, decimals: 1
+  },
+  temperatura: {
+    type: 'both',
+    yMin: 12, yMax: 22, s1_ticks: [12, 17, 22], s2_ticks: [12, 14, 16, 19, 22],
+    threshold: 19, upperThreshold: null, isRange: false, inverted: false,
+    threshLabel_es: 'umbral 19 °C (descarga térmica)', threshLabel_en: 'threshold 19 °C (thermal discharge)',
+    s1_label_es: 'Temperatura — lab mensual (Díaz) + sensor continuo (Gene/MBARI)', s1_label_en: 'Temperature — monthly lab (Díaz) + continuous sensor (Gene/MBARI)',
+    s2_title_es: 'Temperatura del agua (°C)', s2_title_en: 'Water temperature (°C)',
+    desc_es: 'Temperatura del mar. Sube con descargas térmicas de termoeléctricas; afecta oxígeno y biota. La sonda de Díaz la registra en cada visita mensual; el sensor de Gene la lee continuamente.',
+    desc_en: 'Sea temperature. Rises with thermal discharge from power plants; affects oxygen and biota. Díaz\'s probe records it on each monthly visit; Gene\'s sensor reads it continuously.',
+    values: [15.2, 14.1, 13.4, 13.0, 12.9, 13.5, 14.2, 15.1, 16.4, 17.2, 17.5, 16.6, 15.4, 14.3],
+    baseline: 14.5, eventMag: 4.2, decimals: 1
+  },
+  clorofila: {
+    type: 'sensor',
+    yMin: 0, yMax: 12, s1_ticks: [0, 6, 12], s2_ticks: [0, 2, 4, 8, 12],
+    threshold: 2, upperThreshold: 8, isRange: true, inverted: false,
+    threshLabel_es: 'rango productivo 2 – 8 µg/L', threshLabel_en: 'productive range 2 – 8 µg/L',
+    s1_label_es: 'Sensor continuo — clorofila-a (µg/L)', s1_label_en: 'Continuous sensor — chlorophyll-a (µg/L)',
+    s2_title_es: 'Clorofila-a (µg/L)', s2_title_en: 'Chlorophyll-a (µg/L)',
+    desc_es: 'Indicador de fitoplancton. Cae con estrés químico, salta con floraciones — señal temprana de impacto. EOV que la plataforma de Gene mide en continuo; no está en el programa mensual.',
+    desc_en: 'Phytoplankton indicator. Drops under chemical stress, spikes with blooms — early impact signal. EOV Gene\'s platform measures continuously; not in the monthly program.',
+    values: [], baseline: 4.5, eventMag: 3.2, decimals: 1
+  },
+  turbidez: {
+    type: 'sensor',
+    yMin: 0, yMax: 40, s1_ticks: [0, 20, 40], s2_ticks: [0, 5, 10, 25, 40],
+    threshold: 10, upperThreshold: null, isRange: false, inverted: false,
+    threshLabel_es: 'umbral 10 NTU (orientativo)', threshLabel_en: 'threshold 10 NTU (guideline)',
+    s1_label_es: 'Sensor continuo — turbidez (NTU)', s1_label_en: 'Continuous sensor — turbidity (NTU)',
+    s2_title_es: 'Turbidez del agua (NTU)', s2_title_en: 'Water turbidity (NTU)',
+    desc_es: 'Material en suspensión. Sube con plumas de sedimento, escorrentía, dragado o vertimientos. EOV que la plataforma de Gene mide en continuo; no está en el programa mensual.',
+    desc_en: 'Suspended material. Rises with sediment plumes, runoff, dredging, or discharges. EOV Gene\'s platform measures continuously; not in the monthly program.',
+    values: [], baseline: 3.5, eventMag: 22, decimals: 1
+  },
+  pCO2: {
+    type: 'sensor',
+    yMin: 250, yMax: 700, s1_ticks: [250, 475, 700], s2_ticks: [250, 400, 500, 600, 700],
+    threshold: 500, upperThreshold: null, isRange: false, inverted: false,
+    threshLabel_es: 'referencia atmosférica ~420 µatm', threshLabel_en: 'atmospheric reference ~420 µatm',
+    s1_label_es: 'Sensor continuo — presión parcial de CO₂ (µatm)', s1_label_en: 'Continuous sensor — CO₂ partial pressure (µatm)',
+    s2_title_es: 'pCO₂ del agua (µatm)', s2_title_en: 'Water pCO₂ (µatm)',
+    desc_es: 'Presión parcial de CO₂. EOV central para acidificación oceánica y para verificar remoción de carbono — línea de trabajo activa de la plataforma de Gene. No lo mide el programa mensual.',
+    desc_en: 'CO₂ partial pressure. Core EOV for ocean acidification and for verifying carbon removal — an active line of work for Gene\'s platform. Not measured by the monthly program.',
+    values: [], baseline: 410, eventMag: 240, decimals: 0
+  }
+};
+
+let currentParam = 'cobre';
+function getParam() { return PARAMETERS[currentParam]; }
+function fmtVal(val, param) { return val.toFixed(param.decimals); }
+
+function isOutOfRange(val, param) {
+  if (param.isRange) return val < param.threshold || val > param.upperThreshold;
+  if (param.inverted) return val < param.threshold;
+  return val > param.threshold;
+}
+
+// ──────────────────────────────────────────────────────────
+// Screen 1 chemistry track
+// ──────────────────────────────────────────────────────────
+function yChemS1(val, param) {
+  return 300 - ((val - param.yMin) / (param.yMax - param.yMin)) * 120;
+}
+
+function renderChemistryTrack() {
+  const param = getParam();
+  const lang = document.body.dataset.lang;
+  const isSensorOnly = param.type === 'sensor';
+
+  const labelEl = document.getElementById('s1-chem-label');
+  labelEl.setAttribute('data-es', param.s1_label_es);
+  labelEl.setAttribute('data-en', param.s1_label_en);
+  labelEl.textContent = param['s1_label_' + lang];
+
+  const ticks = param.s1_ticks;
+  const yEls = ['s1-chem-y3', 's1-chem-y2', 's1-chem-y1'];
+  ticks.forEach((tval, i) => {
+    const el = document.getElementById(yEls[i]);
+    el.textContent = fmtVal(tval, param);
+    el.setAttribute('y', yChemS1(tval, param) + 4);
+  });
+
+  const t1 = document.getElementById('s1-thresh-line');
+  const t2 = document.getElementById('s1-thresh-line2');
+  const tlab = document.getElementById('s1-thresh-label');
+  const nomonOverlay = document.getElementById('needsensor-overlay');
+  const nomonL1 = document.getElementById('nomon-l1');
+  const nomonL2 = document.getElementById('nomon-l2');
+
+  if (isSensorOnly) {
+    // Hide regulatory threshold + lab dots; show sensor-only overlay across full chem track
+    t1.setAttribute('opacity', '0');
+    t2.setAttribute('opacity', '0');
+    tlab.setAttribute('opacity', '0');
+    document.getElementById('chem-line').setAttribute('points', '');
+    document.getElementById('chem-dots').innerHTML = '';
+    nomonOverlay.style.display = 'block';
+    nomonL1.style.display = 'none';
+    nomonL2.style.display = 'none';
+    return;
+  }
+
+  // Normal lab parameter
+  nomonOverlay.style.display = 'none';
+  nomonL1.style.display = '';
+  nomonL2.style.display = '';
+  tlab.setAttribute('opacity', '1');
+
+  const y1 = yChemS1(param.threshold, param);
+  t1.setAttribute('y1', y1);
+  t1.setAttribute('y2', y1);
+  t1.setAttribute('opacity', '0.55');
+
+  if (param.isRange) {
+    const y2 = yChemS1(param.upperThreshold, param);
+    t2.setAttribute('y1', y2);
+    t2.setAttribute('y2', y2);
+    t2.setAttribute('opacity', '0.55');
+  } else {
+    t2.setAttribute('opacity', '0');
+  }
+
+  tlab.setAttribute('data-es', param.threshLabel_es);
+  tlab.setAttribute('data-en', param.threshLabel_en);
+  tlab.textContent = param['threshLabel_' + lang];
+  const labelY = param.isRange ? yChemS1(param.upperThreshold, param) - 4 : y1 - 4;
+  tlab.setAttribute('y', labelY);
+
+  const pts = CHEM_DATES.map((d, i) => {
+    const [y, m, day] = d;
+    return `${xt(y,m,day).toFixed(1)},${yChemS1(param.values[i], param).toFixed(1)}`;
+  }).join(' ');
+  document.getElementById('chem-line').setAttribute('points', pts);
+
+  const chemDots = document.getElementById('chem-dots');
+  chemDots.innerHTML = '';
+  CHEM_DATES.forEach((d, i) => {
+    const [y, m, day] = d;
+    const val = param.values[i];
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx', xt(y,m,day).toFixed(1));
+    c.setAttribute('cy', yChemS1(val, param).toFixed(1));
+    c.setAttribute('r', '2.4');
+    c.setAttribute('fill', isOutOfRange(val, param) ? '#A32D2D' : '#2A78D6');
+    c.setAttribute('stroke', '#FAF8F2');
+    c.setAttribute('stroke-width', '0.5');
+    chemDots.appendChild(c);
+  });
+}
+
+// ──────────────────────────────────────────────────────────
+// Screen 2 event zoom
+// ──────────────────────────────────────────────────────────
+const EX0 = 70, EX1 = 880, EPLOT_W = EX1 - EX0;
+const EY0 = 30, EY1 = 300, EPLOT_H = EY1 - EY0;
+const DAYS = 35;
+function ext(d) { return EX0 + (d/DAYS) * EPLOT_W; }
+function eyt(v, param) { return EY1 - ((v - param.yMin) / (param.yMax - param.yMin)) * EPLOT_H; }
+
+function trueSignal(t, param) {
+  const baseline = param.baseline
+    + Math.sin(t*1.2) * (param.eventMag * 0.04)
+    + Math.sin(t*0.5 + 1.1) * (param.eventMag * 0.03);
+  const eventCenter = 17.7;
+  let evt = 0;
+  if (t > eventCenter - 1.5 && t < eventCenter + 6) {
+    const sigma = t < eventCenter ? 0.28 : 1.45;
+    evt = param.eventMag * Math.exp(-Math.pow(t - eventCenter, 2) / (2*sigma*sigma));
+  }
+  return param.inverted ? baseline - evt : baseline + evt;
+}
+
+const INTERVALS = [30, 14, 7, 3, 1, 0.5, 0.25, 0.125];
+const LABELS_ES = ['mensual', 'quincenal', 'semanal', 'cada 3 días', 'diario', 'cada 12 h', 'cada 6 h', 'cada 3 h'];
+const LABELS_EN = ['monthly', 'fortnightly', 'weekly', 'every 3 days', 'daily', 'every 12 h', 'every 6 h', 'every 3 h'];
+
+function updateEventScreen() {
+  const param = getParam();
+  const lang = document.body.dataset.lang;
+
+  const titleEl = document.getElementById('s2-y-title');
+  titleEl.setAttribute('data-es', param.s2_title_es);
+  titleEl.setAttribute('data-en', param.s2_title_en);
+  titleEl.textContent = param['s2_title_' + lang];
+
+  const yIds = ['s2-y1', 's2-y2', 's2-y3', 's2-y4', 's2-y5'];
+  const sortedHigh = [...param.s2_ticks].sort((a, b) => b - a);
+  yIds.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (i < sortedHigh.length) {
+      el.textContent = fmtVal(sortedHigh[i], param);
+      el.setAttribute('y', eyt(sortedHigh[i], param) + 4);
+      el.style.display = '';
+    } else {
+      el.style.display = 'none';
+    }
+  });
+
+  const t1 = document.getElementById('s2-thresh-line');
+  const t2 = document.getElementById('s2-thresh-line2');
+  const tlab = document.getElementById('s2-thresh-label');
+  const y1 = eyt(param.threshold, param);
+  t1.setAttribute('y1', y1);
+  t1.setAttribute('y2', y1);
+  t1.setAttribute('opacity', '0.55');
+  if (param.isRange) {
+    const y2 = eyt(param.upperThreshold, param);
+    t2.setAttribute('y1', y2);
+    t2.setAttribute('y2', y2);
+    t2.setAttribute('opacity', '0.55');
+  } else {
+    t2.setAttribute('opacity', '0');
+  }
+  tlab.setAttribute('data-es', param.threshLabel_es);
+  tlab.setAttribute('data-en', param.threshLabel_en);
+  tlab.textContent = param['threshLabel_' + lang];
+  const labelY = param.isRange ? eyt(param.upperThreshold, param) - 4 : y1 - 4;
+  tlab.setAttribute('y', labelY);
+
+  const truePts = [];
+  let trueExtreme = param.inverted ? Infinity : -Infinity;
+  for (let d = 0; d <= DAYS; d += 0.05) {
+    const v = trueSignal(d, param);
+    truePts.push(`${ext(d).toFixed(1)},${eyt(v, param).toFixed(1)}`);
+    if (param.inverted) { if (v < trueExtreme) trueExtreme = v; }
+    else { if (v > trueExtreme) trueExtreme = v; }
+  }
+  document.getElementById('true-line').setAttribute('points', truePts.join(' '));
+  document.getElementById('true-val').textContent = fmtVal(trueExtreme, param);
+
+  const captLbl = document.querySelector('#screen-event .stat-grid .stat:nth-child(1) .lbl');
+  const trueLbl = document.querySelector('#screen-event .stat-grid .stat:nth-child(2) .lbl');
+  if (param.inverted) {
+    captLbl.setAttribute('data-es', 'Mínimo capturado');
+    captLbl.setAttribute('data-en', 'Trough captured');
+    trueLbl.setAttribute('data-es', 'Mínimo real');
+    trueLbl.setAttribute('data-en', 'True trough');
+  } else {
+    captLbl.setAttribute('data-es', 'Pico capturado');
+    captLbl.setAttribute('data-en', 'Peak captured');
+    trueLbl.setAttribute('data-es', 'Pico real');
+    trueLbl.setAttribute('data-en', 'True peak');
+  }
+  captLbl.textContent = captLbl.dataset[lang];
+  trueLbl.textContent = trueLbl.dataset[lang];
+
+  const idx = parseInt(document.getElementById('freq').value, 10);
+  const interval = INTERVALS[idx];
+  const intervalLabel = (lang === 'es' ? LABELS_ES : LABELS_EN)[idx];
+
+  const samples = [];
+  let st = 4;
+  while (st <= DAYS) {
+    const noise = (Math.random() - 0.5) * (param.eventMag * 0.015);
+    samples.push({t: st, v: trueSignal(st, param) + noise});
+    st += interval;
+  }
+
+  const samplesG = document.getElementById('samples');
+  samplesG.innerHTML = '';
+  let captExtreme = param.inverted ? Infinity : -Infinity;
+  let captT = 4;
+  samples.forEach(s => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx', ext(s.t).toFixed(1));
+    c.setAttribute('cy', eyt(s.v, param).toFixed(1));
+    c.setAttribute('r', interval < 1 ? '1.8' : '3');
+    c.setAttribute('fill', isOutOfRange(s.v, param) ? '#A32D2D' : '#2A78D6');
+    c.setAttribute('stroke', '#FAF8F2');
+    c.setAttribute('stroke-width', '0.5');
+    samplesG.appendChild(c);
+    if (param.inverted) { if (s.v < captExtreme) { captExtreme = s.v; captT = s.t; } }
+    else { if (s.v > captExtreme) { captExtreme = s.v; captT = s.t; } }
+  });
+
+  const cap = document.getElementById('capture-marker');
+  cap.innerHTML = '';
+  if (interval >= 1) {
+    const ring = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    ring.setAttribute('cx', ext(captT).toFixed(1));
+    ring.setAttribute('cy', eyt(captExtreme, param).toFixed(1));
+    ring.setAttribute('r', '7');
+    ring.setAttribute('fill', 'none');
+    ring.setAttribute('stroke', '#185FA5');
+    ring.setAttribute('stroke-width', '1');
+    ring.setAttribute('stroke-dasharray', '2,2');
+    cap.appendChild(ring);
+  }
+
+  const samplesText = lang === 'es'
+    ? `${intervalLabel} · ${samples.length} ${samples.length === 1 ? 'muestra' : 'muestras'}`
+    : `${intervalLabel} · ${samples.length} ${samples.length === 1 ? 'sample' : 'samples'}`;
+  document.getElementById('freq-out').textContent = samplesText;
+  document.getElementById('captured-val').textContent = fmtVal(captExtreme, param);
+
+  let recovery;
+  if (param.inverted) {
+    const eventCaptured = Math.max(0, param.baseline - captExtreme);
+    const eventReal = Math.max(0.001, param.baseline - trueExtreme);
+    recovery = eventCaptured / eventReal;
+  } else {
+    const eventCaptured = Math.max(0, captExtreme - param.baseline);
+    const eventReal = Math.max(0.001, trueExtreme - param.baseline);
+    recovery = eventCaptured / eventReal;
+  }
+  recovery = Math.min(1, recovery);
+  document.getElementById('recovery-val').textContent = Math.round(recovery * 100) + '%';
+
+  let tier;
+  if (recovery >= 0.85) tier = 0;
+  else if (recovery >= 0.55) tier = 1;
+  else if (recovery >= 0.25) tier = 2;
+  else tier = 3;
+
+  const TITLES_ES = ['Evento capturado en magnitud completa', 'Evento subestimado', 'Señal apenas visible', 'Evento invisible al muestreo'];
+  const TITLES_EN = ['Event captured at full magnitude', 'Event underestimated', 'Signal barely visible', 'Event invisible to sampling'];
+  const BODIES_ES = [
+    'Esta frecuencia revela la forma real del evento. Aquí el muestreo discreto y el sensor continuo dicen casi lo mismo.',
+    'El muestreo toca el flanco del evento pero no su extremo. El reporte de cumplimiento subestimaría la exposición real.',
+    'Solo se ve una variación sobre el ruido de fondo. Sin contexto sería difícil distinguirla de variabilidad normal.',
+    'A esta frecuencia el evento del 18 sep cae entre dos muestras. La química del agua aparece dentro de norma — el evento queda ausente del registro.'
+  ];
+  const BODIES_EN = [
+    'This frequency reveals the actual event shape. Here discrete sampling and continuous sensing tell roughly the same story.',
+    'Sampling catches the flank of the event but not its extreme. A compliance report would understate the real exposure.',
+    'Only a small variation above background is visible. Without context it would be hard to distinguish from normal.',
+    'At this frequency the 18 Sep event falls between two samples. The water chemistry appears within norm — the event is absent from the record.'
+  ];
+  const COLORS = ['#1D9E75', '#D68A1A', '#C84628', '#A32D2D'];
+  document.getElementById('verdict-title').textContent = (lang === 'es' ? TITLES_ES : TITLES_EN)[tier];
+  document.getElementById('verdict-body').textContent = (lang === 'es' ? BODIES_ES : BODIES_EN)[tier];
+  const v = document.getElementById('verdict');
+  v.style.borderLeftColor = COLORS[tier];
+  v.style.borderLeftWidth = '3px';
+}
+
+function renderParamDesc() {
+  const param = getParam();
+  const lang = document.body.dataset.lang;
+  const desc = param['desc_' + lang];
+  document.getElementById('s1-param-desc').textContent = desc;
+  document.getElementById('s2-param-desc').textContent = desc;
+}
+
+function setParameter(name) {
+  if (!PARAMETERS[name]) return;
+  currentParam = name;
+  document.querySelectorAll('.param-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.param === name);
+  });
+  renderChemistryTrack();
+  updateEventScreen();
+  renderParamDesc();
+}
+
+// ──────────────────────────────────────────────────────────
+// Documented events panel
+// ──────────────────────────────────────────────────────────
+const EVENTS = [
+  {
+    date_es: '21 ago 2018', date_en: '21 Aug 2018',
+    title_es: 'Intoxicación masiva — La Greda', title_en: 'Mass intoxication — La Greda',
+    type_es: 'Episodio agudo · pluma química no identificada', type_en: 'Acute episode · unidentified chemical plume',
+    source_es: 'SMA · prensa local · informes médicos', source_en: 'SMA · local press · medical reports',
+    desc_es: 'Escuela de La Greda evacuada. Cefaleas, vómitos y dificultad respiratoria en niños. La fuente nunca fue confirmada por la SMA — uno de los episodios fundacionales del estatus de zona de sacrificio.',
+    desc_en: 'La Greda school evacuated. Headaches, vomiting and breathing difficulty in children. The source was never confirmed by SMA — one of the founding episodes of the sacrifice-zone designation.',
+    hadSampling: false,
+    bioBefore: 4.9, bioBeforeLbl_es: 'Q2 2018', bioBeforeLbl_en: 'Q2 2018',
+    bioAfter: 4.3, bioAfterLbl_es: 'Q4 2018 (dos trimestres después)', bioAfterLbl_en: 'Q4 2018 (two quarters after)'
+  },
+  {
+    date_es: '27 feb 2019', date_en: '27 Feb 2019',
+    title_es: 'Pico de SO₂ — refinería', title_en: 'SO₂ spike — refinery',
+    type_es: 'Emisión atmosférica de dióxido de azufre', type_en: 'Atmospheric sulfur dioxide emission',
+    source_es: 'SMA · reporte de incidente', source_en: 'SMA · incident report',
+    desc_es: 'Emisión registrada por estaciones de monitoreo atmosférico de la SMA. Sin reporte de impacto agudo en escuelas; superado el umbral horario establecido.',
+    desc_en: 'Emission registered by SMA atmospheric monitoring stations. No reported acute school impact; hourly threshold exceeded.',
+    hadSampling: false,
+    bioBefore: 4.3, bioBeforeLbl_es: 'Q4 2018', bioBeforeLbl_en: 'Q4 2018',
+    bioAfter: 3.6, bioAfterLbl_es: 'Q3 2019', bioAfterLbl_en: 'Q3 2019'
+  },
+  {
+    date_es: '8 jun 2020', date_en: '8 Jun 2020',
+    title_es: 'Mortandad de peces', title_en: 'Fish kill',
+    type_es: 'Mortandad masiva en costa · fuente sin confirmar', type_en: 'Mass mortality on coast · unconfirmed source',
+    source_es: 'Prensa local · reportes ciudadanos', source_en: 'Local press · citizen reports',
+    desc_es: 'Mortandad masiva en la costa de Quintero documentada por la prensa. La SMA inició investigación pero la fuente industrial no fue confirmada públicamente.',
+    desc_en: 'Mass mortality on the Quintero coast documented by press. SMA opened an investigation but the industrial source was never publicly confirmed.',
+    hadSampling: false,
+    bioBefore: 4.2, bioBeforeLbl_es: 'Q1 2020', bioBeforeLbl_en: 'Q1 2020',
+    bioAfter: 4.6, bioAfterLbl_es: 'Q3 2020', bioAfterLbl_en: 'Q3 2020'
+  },
+  {
+    date_es: '15 nov 2022', date_en: '15 Nov 2022',
+    title_es: 'Pluma de sedimento — terminal ENAP', title_en: 'Sediment plume — ENAP terminal',
+    type_es: 'Vertimiento aquático · pluma visible por 3 días', type_en: 'Aquatic discharge · plume visible for 3 days',
+    source_es: 'SMA · reportes ciudadanos', source_en: 'SMA · citizen reports',
+    desc_es: 'Descarga de sedimento desde el terminal marítimo de ENAP. Pluma visible por tres días en la bahía. El refugio reporta una caída sostenida del puntaje de biodiversidad por nueve meses.',
+    desc_en: 'Sediment discharge from the ENAP maritime terminal. Plume visible for three days in the bay. The refuge reports a sustained 9-month drop in biodiversity score.',
+    hadSampling: false,
+    bioBefore: 6.3, bioBeforeLbl_es: 'Q3 2022', bioBeforeLbl_en: 'Q3 2022',
+    bioAfter: 4.6, bioAfterLbl_es: 'Q2 2023 (mínimo del período)', bioAfterLbl_en: 'Q2 2023 (period low)'
+  },
+  {
+    date_es: '18 sep 2025', date_en: '18 Sep 2025',
+    title_es: 'Episodio SO₂ — escuela Quintero', title_en: 'SO₂ episode — Quintero school',
+    type_es: 'Atmosférico, ~18:00 · fuente bajo investigación', type_en: 'Atmospheric, ~18:00 · source under investigation',
+    source_es: 'SMA · prensa local', source_en: 'SMA · local press',
+    desc_es: 'Episodio atmosférico de dióxido de azufre alrededor de las 18:00. Escuela de Quintero evacuada. Es el primer evento documentado dentro del programa de monitoreo químico de María José Díaz — y prueba directa de su límite temporal.',
+    desc_en: 'Atmospheric SO₂ episode around 18:00. Quintero school evacuated. This is the first documented event within María José Díaz\'s chemistry monitoring program — and direct evidence of its temporal limit.',
+    hadSampling: true,
+    sampBefore_es: '5 sep 2025 · cobre 48 µg/L · arsénico 24 µg/L · pH 7,8',
+    sampBefore_en: '5 Sep 2025 · copper 48 µg/L · arsenic 24 µg/L · pH 7.8',
+    sampAfter_es: '4 oct 2025 · cobre 52 µg/L · arsénico 31 µg/L · pH 7,5',
+    sampAfter_en: '4 Oct 2025 · copper 52 µg/L · arsenic 31 µg/L · pH 7.5',
+    gap_es: '29 días entre muestras · evento del 18 sep no detectable en la serie discreta',
+    gap_en: '29 days between samples · 18 Sep event undetectable in the discrete series',
+    bioBefore: 6.3, bioBeforeLbl_es: 'Q3 2025', bioBeforeLbl_en: 'Q3 2025',
+    bioAfter: 5.9, bioAfterLbl_es: 'Q4 2025', bioAfterLbl_en: 'Q4 2025'
+  }
+];
+
+let selectedEvent = null;
+
+function showEventDetails(idx) {
+  if (idx < 0 || idx >= EVENTS.length) return;
+  selectedEvent = idx;
+  const e = EVENTS[idx];
+  const lang = document.body.dataset.lang;
+
+  for (let i = 0; i < EVENTS.length; i++) {
+    const band = document.getElementById('event-band-' + i);
+    if (band) {
+      band.setAttribute('width', i === idx ? '3' : '1.5');
+      band.setAttribute('opacity', i === idx ? '0.32' : '0.10');
+    }
+  }
+  document.querySelectorAll('.event-chip').forEach((btn) => {
+    btn.classList.toggle('active', parseInt(btn.dataset.idx, 10) === idx && !btn.classList.contains('community'));
+  });
+
+  const delta = e.bioAfter - e.bioBefore;
+  const deltaStr = (delta > 0 ? '+' : '') + delta.toFixed(1);
+  const deltaCls = Math.abs(delta) < 0.15 ? 'flat' : (delta > 0 ? 'up' : 'down');
+
+  const samplingLine = e.hadSampling
+    ? `<div class="event-panel-row"><span class="key">${lang === 'es' ? 'Muestra previa' : 'Prior sample'}</span><span class="val" style="font-size:12px;text-align:right;max-width:60%">${e['sampBefore_' + lang]}</span></div>
+       <div class="event-panel-row"><span class="key">${lang === 'es' ? 'Muestra posterior' : 'Next sample'}</span><span class="val" style="font-size:12px;text-align:right;max-width:60%">${e['sampAfter_' + lang]}</span></div>
+       <div class="event-panel-callout">${e['gap_' + lang]}</div>`
+    : `<div class="event-panel-row"><span class="key">${lang === 'es' ? 'Estado' : 'Status'}</span><span class="val muted">${lang === 'es' ? 'sin programa sistemático en esta fecha' : 'no systematic program on this date'}</span></div>
+       <div class="event-panel-callout">${lang === 'es' ? 'El programa de monitoreo químico de María José Díaz comenzó en abril 2025. Para este evento solo existe el rastro de los registros industriales y la prensa.' : 'María José Díaz\'s chemistry monitoring program began in April 2025. For this event only the industrial registry and press trace remain.'}</div>`;
+
+  const html = `
+    <div class="event-panel-eyebrow">${lang === 'es' ? 'Evento documentado' : 'Documented event'} · ${e['date_' + lang]}</div>
+    <h3 class="event-panel-title">${e['title_' + lang]}</h3>
+    <div class="event-panel-source">${e['type_' + lang]} · ${lang === 'es' ? 'fuente' : 'source'}: ${e['source_' + lang]}</div>
+    <p class="event-panel-desc">${e['desc_' + lang]}</p>
+    <div class="event-panel-grid">
+      <div>
+        <div class="event-panel-section-head">${lang === 'es' ? 'Química del agua' : 'Water chemistry'}</div>
+        ${samplingLine}
+      </div>
+      <div>
+        <div class="event-panel-section-head">${lang === 'es' ? 'Biodiversidad del refugio' : 'Refuge biodiversity'}</div>
+        <div class="event-panel-row"><span class="key">${e['bioBeforeLbl_' + lang]}</span><span class="val">${e.bioBefore.toFixed(1)}</span></div>
+        <div class="event-panel-row"><span class="key">${e['bioAfterLbl_' + lang]}</span><span class="val">${e.bioAfter.toFixed(1)} <span class="delta ${deltaCls}">${deltaStr}</span></span></div>
+      </div>
+    </div>
+  `;
+
+  const panel = document.getElementById('event-panel');
+  panel.classList.remove('empty');
+  panel.style.borderLeftColor = 'var(--event)';
+  panel.innerHTML = html;
+}
+
+function showCommunityReportDetails(reportId) {
+  const r = communityReports.find(x => x.id === reportId);
+  if (!r) return;
+  selectedEvent = null;
+  document.querySelectorAll('.event-chip').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.reportId === reportId);
+  });
+  for (let i = 0; i < EVENTS.length; i++) {
+    const band = document.getElementById('event-band-' + i);
+    if (band) { band.setAttribute('width', '1.5'); band.setAttribute('opacity', '0.10'); }
+  }
+  const lang = document.body.dataset.lang;
+  const TYPES = {
+    smell: { es: 'Olor a gas o químico', en: 'Gas or chemical smell' },
+    fishkill: { es: 'Peces u otros animales muertos', en: 'Dead fish or other animals' },
+    color: { es: 'Agua con color anómalo', en: 'Anomalous water color' },
+    oil: { es: 'Mancha de petróleo o aceite', en: 'Oil or petroleum slick' },
+    smoke: { es: 'Humo desde planta o chimenea', en: 'Smoke from plant or stack' },
+    health: { es: 'Síntomas en personas', en: 'Symptoms in people' },
+    other: { es: 'Otro', en: 'Other' }
+  };
+  const typeLabel = (TYPES[r.type] || TYPES.other)[lang];
+  const when = new Date(r.when);
+  const whenStr = when.toLocaleString(lang === 'es' ? 'es-CL' : 'en-GB');
+  const html = `
+    <div class="event-panel-eyebrow" style="color:var(--community)">${lang === 'es' ? 'Reporte ciudadano' : 'Community report'} · ${whenStr}</div>
+    <h3 class="event-panel-title">${typeLabel}</h3>
+    <div class="event-panel-source">${lang === 'es' ? 'Reportado por' : 'Reported by'}: ${r.reporter || (lang === 'es' ? 'anónimo' : 'anonymous')} · ${r.lat ? r.lat.toFixed(4) + ', ' + r.lng.toFixed(4) : (lang === 'es' ? 'sin ubicación' : 'no location')}</div>
+    <p class="event-panel-desc">${r.notes || (lang === 'es' ? '(sin descripción)' : '(no description)')}</p>
+    <div class="event-panel-callout" style="border-left-color:var(--community)">${lang === 'es' ? 'Este reporte es local a este navegador. En la versión completa se enviaría al equipo del refugio y, una vez verificado, formaría parte del registro público.' : 'This report is local to this browser. In the full version it would be sent to the refuge team and, once verified, would become part of the public record.'}</div>
+  `;
+  const panel = document.getElementById('event-panel');
+  panel.classList.remove('empty');
+  panel.style.borderLeftColor = 'var(--community)';
+  panel.innerHTML = html;
+}
+
+document.getElementById('freq').addEventListener('input', updateEventScreen);
+
+// ──────────────────────────────────────────────────────────
+// Leaflet map
+// ──────────────────────────────────────────────────────────
+let map;
+let layers = {};
+let pickingLocation = false;
+let pickedMarker = null;
+let pickedLatLng = null;
+
+function initMap() {
+  map = L.map('bay-map', { scrollWheelZoom: false }).setView([-32.7470, -71.4830], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 18
+  }).addTo(map);
+
+  // Refuge polygon (approximate — replace with Capital Azul coords)
+  const refugePoly = L.polygon([
+    [-32.7438, -71.4860],
+    [-32.7435, -71.4795],
+    [-32.7472, -71.4790],
+    [-32.7478, -71.4858]
+  ], { color: '#0F6E56', weight: 2, fillColor: '#1D9E75', fillOpacity: 0.18 });
+  refugePoly.bindPopup('<b>Refugio Marino Ventanas</b>11,9 ha · TURF-Reserve<br>Sindicato Caleta Ventanas + Fundación Capital Azul<div class="pop-meta">desde 2018 · 7 años de scorecard</div>');
+  layers.refuge = L.layerGroup([refugePoly]).addTo(map);
+
+  // Chemistry stations (María José program — approximate)
+  layers.chem = L.layerGroup([
+    L.circleMarker([-32.7465, -71.4848], { color: '#2A78D6', radius: 7, weight: 2, fillOpacity: 0.7, fillColor: '#fff' })
+      .bindPopup('<b>MJ-01 · Química mensual</b>Metales pesados, nutrientes<div class="pop-meta">PUCV/UPLA · M. J. Díaz · desde abr 2025</div>'),
+    L.circleMarker([-32.7452, -71.4815], { color: '#2A78D6', radius: 7, weight: 2, fillOpacity: 0.7, fillColor: '#fff' })
+      .bindPopup('<b>MJ-02 · Química mensual</b>Metales pesados, nutrientes<div class="pop-meta">PUCV/UPLA · M. J. Díaz · desde abr 2025</div>'),
+    L.circleMarker([-32.7488, -71.4830], { color: '#2A78D6', radius: 7, weight: 2, fillOpacity: 0.7, fillColor: '#fff' })
+      .bindPopup('<b>MJ-03 · Química mensual</b>Metales pesados, nutrientes<div class="pop-meta">PUCV/UPLA · M. J. Díaz · desde abr 2025</div>')
+  ]).addTo(map);
+
+  // Biodiversity transects
+  layers.bio = L.layerGroup([
+    L.circleMarker([-32.7450, -71.4830], { color: '#1D9E75', radius: 6, weight: 2, fillOpacity: 0.7, fillColor: '#fff' })
+      .bindPopup('<b>Transecto T1 · norte</b>Scorecard de biodiversidad<div class="pop-meta">Caleta + Capital Azul · estacional desde 2018</div>'),
+    L.circleMarker([-32.7462, -71.4815], { color: '#1D9E75', radius: 6, weight: 2, fillOpacity: 0.7, fillColor: '#fff' })
+      .bindPopup('<b>Transecto T2 · central</b>Scorecard de biodiversidad<div class="pop-meta">Caleta + Capital Azul · estacional desde 2018</div>'),
+    L.circleMarker([-32.7475, -71.4825], { color: '#1D9E75', radius: 6, weight: 2, fillOpacity: 0.7, fillColor: '#fff' })
+      .bindPopup('<b>Transecto T3 · sur</b>Scorecard de biodiversidad<div class="pop-meta">Caleta + Capital Azul · estacional desde 2018</div>')
+  ]).addTo(map);
+
+  // Proposed continuous sensor
+  layers.sensor = L.layerGroup([
+    L.circleMarker([-32.7458, -71.4838], { color: '#D68A1A', radius: 9, weight: 2, fillOpacity: 0.5, fillColor: '#D68A1A' })
+      .bindPopup('<b>Sensor continuo · propuesto</b>Lectura cada 15 min · 24/7<br>temperatura, salinidad, O₂, pH, nutrientes, clorofila-a, turbidez, pCO₂, acústica<div class="pop-meta">MBARI · Gene (hOBS) · WPF + Ocean Data View · diseño abierto, datos públicos</div>')
+  ]).addTo(map);
+
+  // Industrial sources
+  layers.industry = L.layerGroup([
+    L.circleMarker([-32.7395, -71.4790], { color: '#7f1d1d', radius: 7, weight: 2, fillOpacity: 0.6, fillColor: '#7f1d1d' })
+      .bindPopup('<b>Complejo Ventanas</b>Fundición · termoeléctricas<div class="pop-meta">fuente histórica de SO₂, As, Cu, Pb</div>'),
+    L.circleMarker([-32.7510, -71.4870], { color: '#7f1d1d', radius: 7, weight: 2, fillOpacity: 0.6, fillColor: '#7f1d1d' })
+      .bindPopup('<b>Terminal ENAP</b>Hidrocarburos · terminal marítimo<div class="pop-meta">evento documentado 15 nov 2022</div>'),
+    L.circleMarker([-32.7435, -71.4920], { color: '#7f1d1d', radius: 7, weight: 2, fillOpacity: 0.6, fillColor: '#7f1d1d' })
+      .bindPopup('<b>GNL Quintero</b>Terminal de gas licuado<div class="pop-meta">descarga térmica</div>')
+  ]).addTo(map);
+
+  layers.community = L.layerGroup().addTo(map);
+  renderCommunityMarkers();
+
+  // Layer toggles
+  document.getElementById('layer-refuge').addEventListener('change', e => toggleLayer('refuge', e.target.checked));
+  document.getElementById('layer-chem').addEventListener('change', e => toggleLayer('chem', e.target.checked));
+  document.getElementById('layer-bio').addEventListener('change', e => toggleLayer('bio', e.target.checked));
+  document.getElementById('layer-sensor').addEventListener('change', e => toggleLayer('sensor', e.target.checked));
+  document.getElementById('layer-industry').addEventListener('change', e => toggleLayer('industry', e.target.checked));
+  document.getElementById('layer-community').addEventListener('change', e => toggleLayer('community', e.target.checked));
+
+  map.on('click', e => {
+    if (pickingLocation) {
+      pickedLatLng = e.latlng;
+      if (pickedMarker) map.removeLayer(pickedMarker);
+      pickedMarker = L.circleMarker(e.latlng, { color: '#7A3FB8', radius: 8, weight: 3, fillOpacity: 0.4, fillColor: '#7A3FB8' }).addTo(map);
+      pickingLocation = false;
+      document.getElementById('pick-mode-banner').classList.remove('show');
+      const btn = document.getElementById('pick-loc-btn');
+      btn.classList.add('picked');
+      const lang = document.body.dataset.lang;
+      btn.textContent = (lang === 'es' ? '✓ ubicación marcada · ' : '✓ location picked · ') + e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4);
+    }
+  });
+}
+
+function toggleLayer(name, on) {
+  if (!layers[name]) return;
+  if (on) layers[name].addTo(map);
+  else map.removeLayer(layers[name]);
+}
+
+function startPickLocation() {
+  pickingLocation = true;
+  document.getElementById('pick-mode-banner').classList.add('show');
+  document.getElementById('bay-map').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelPickLocation() {
+  pickingLocation = false;
+  document.getElementById('pick-mode-banner').classList.remove('show');
+}
+
+// ──────────────────────────────────────────────────────────
+// Community reports — backed by Supabase (shared across every
+// visitor), not localStorage (which was per-device, per-browser).
+// Table: community_reports (see schema.sql)
+// ──────────────────────────────────────────────────────────
+let communityReports = [];
+
+async function loadReports() {
+  try {
+    const rows = await supabaseRequest(
+      'community_reports?select=*&order=created_at.desc&limit=500'
+    );
+    // Map DB column names (snake_case) to the field names the rest
+    // of this file already uses (when/type/lat/lng/reporter).
+    communityReports = rows.map(r => ({
+      id: r.id,
+      when: r.happened_at,
+      type: r.report_type,
+      notes: r.notes,
+      reporter: r.reporter_name,
+      lat: r.lat,
+      lng: r.lon,
+      createdAt: r.created_at
+    }));
+  } catch (e) {
+    console.error('Could not load community reports from Supabase:', e);
+    communityReports = [];
+  }
+}
+
+async function submitReport(ev) {
+  ev.preventDefault();
+  const when = document.getElementById('r-when').value;
+  const type = document.getElementById('r-type').value;
+  const notes = document.getElementById('r-notes').value;
+  const reporter = document.getElementById('r-reporter').value;
+  const lang = document.body.dataset.lang;
+  const status = document.getElementById('report-status');
+  const submitBtn = document.querySelector('#report-form button[type=submit]');
+
+  submitBtn.disabled = true;
+
+  try {
+    const [inserted] = await supabaseRequest('community_reports', {
+      method: 'POST',
+      body: JSON.stringify({
+        happened_at: when ? new Date(when).toISOString() : null,
+        report_type: type,
+        notes: notes,
+        reporter_name: reporter || null,
+        lat: pickedLatLng ? pickedLatLng.lat : null,
+        lon: pickedLatLng ? pickedLatLng.lng : null
+      })
+    });
+
+    communityReports.unshift({
+      id: inserted.id,
+      when: inserted.happened_at,
+      type: inserted.report_type,
+      notes: inserted.notes,
+      reporter: inserted.reporter_name,
+      lat: inserted.lat,
+      lng: inserted.lon,
+      createdAt: inserted.created_at
+    });
+
+    renderCommunityMarkers();
+    renderCommunityChips();
+    renderCommunityTimelineMarkers();
+
+    status.textContent = lang === 'es'
+      ? '✓ Reporte enviado. Visible para todos en el mapa y en el gráfico de § 01.'
+      : '✓ Report submitted. Visible to everyone on the map and the § 01 chart.';
+    status.classList.remove('error');
+    status.classList.add('show');
+
+    document.getElementById('report-form').reset();
+    pickedLatLng = null;
+    if (pickedMarker) { map.removeLayer(pickedMarker); pickedMarker = null; }
+    const btn = document.getElementById('pick-loc-btn');
+    btn.classList.remove('picked');
+    btn.textContent = btn.dataset[lang] || (lang === 'es' ? 'Marcar ubicación en el mapa →' : 'Pick location on the map →');
+  } catch (e) {
+    console.error('Could not submit report:', e);
+    status.textContent = lang === 'es'
+      ? '✗ No se pudo enviar el reporte. Intenta de nuevo.'
+      : '✗ Could not submit the report. Please try again.';
+    status.classList.add('show', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    setTimeout(() => status.classList.remove('show'), 5000);
+  }
+}
+
+const TYPE_LABELS = {
+  smell: { es: 'Olor a gas/químico', en: 'Gas/chemical smell' },
+  fishkill: { es: 'Mortandad', en: 'Fish kill' },
+  color: { es: 'Color anómalo', en: 'Anomalous color' },
+  oil: { es: 'Mancha de petróleo', en: 'Oil slick' },
+  smoke: { es: 'Humo', en: 'Smoke' },
+  health: { es: 'Síntomas en personas', en: 'Symptoms in people' },
+  other: { es: 'Otro', en: 'Other' }
+};
+
+function renderCommunityMarkers() {
+  if (!layers.community) return;
+  layers.community.clearLayers();
+  communityReports.forEach(r => {
+    if (r.lat == null || r.lng == null) return;
+    const lang = document.body.dataset.lang;
+    const typeLabel = (TYPE_LABELS[r.type] || TYPE_LABELS.other)[lang];
+    const when = new Date(r.when).toLocaleString(lang === 'es' ? 'es-CL' : 'en-GB');
+    const reporter = r.reporter || (lang === 'es' ? 'anónimo' : 'anonymous');
+    const popup = `<b>${typeLabel}</b>${when}<br><i>${r.notes || ''}</i><div class="pop-meta">${lang === 'es' ? 'reportado por' : 'reported by'} ${reporter}</div>`;
+    L.circleMarker([r.lat, r.lng], { color: '#7A3FB8', radius: 7, weight: 2, fillOpacity: 0.7, fillColor: '#7A3FB8' })
+      .bindPopup(popup)
+      .addTo(layers.community);
+  });
+}
+
+function renderCommunityTimelineMarkers() {
+  const g = document.getElementById('community-markers');
+  g.innerHTML = '';
+  communityReports.forEach(r => {
+    const d = new Date(r.when);
+    if (isNaN(d)) return;
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const day = d.getDate();
+    if (y < 2018 || y > 2026) return;
+    const x = xt(y, m, day);
+    if (x < X0 || x > X1) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', x.toFixed(2));
+    line.setAttribute('x2', x.toFixed(2));
+    line.setAttribute('y1', '30');
+    line.setAttribute('y2', '490');
+    line.setAttribute('stroke', '#7A3FB8');
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('stroke-dasharray', '2,3');
+    line.setAttribute('opacity', '0.55');
+    g.appendChild(line);
+
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx', x.toFixed(2));
+    c.setAttribute('cy', '370');
+    c.setAttribute('r', '4');
+    c.setAttribute('fill', '#7A3FB8');
+    c.setAttribute('style', 'cursor:pointer');
+    c.addEventListener('click', () => showCommunityReportDetails(r.id));
+    g.appendChild(c);
+  });
+}
+
+function renderCommunityChips() {
+  const row = document.getElementById('event-chip-row');
+  // remove old community chips
+  row.querySelectorAll('.event-chip.community').forEach(el => el.remove());
+  const lang = document.body.dataset.lang;
+  communityReports.forEach(r => {
+    const d = new Date(r.when);
+    if (isNaN(d)) return;
+    const btn = document.createElement('button');
+    btn.className = 'event-chip community';
+    btn.dataset.reportId = r.id;
+    const dateStr = d.toLocaleDateString(lang === 'es' ? 'es-CL' : 'en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+    const typeLabel = (TYPE_LABELS[r.type] || TYPE_LABELS.other)[lang];
+    btn.textContent = `${dateStr} · ${typeLabel}`;
+    btn.addEventListener('click', () => showCommunityReportDetails(r.id));
+    row.appendChild(btn);
+  });
+}
+
+// ──────────────────────────────────────────────────────────
+// Boot
+// ──────────────────────────────────────────────────────────
+renderChemistryTrack();
+updateEventScreen();
+renderParamDesc();
+initMap();
+
+loadReports().then(() => {
+  renderCommunityTimelineMarkers();
+  renderCommunityChips();
+  renderCommunityMarkers();
+}).catch(e => console.error('Boot: community reports failed to load', e));
+</script>
+</body>
+</html>
