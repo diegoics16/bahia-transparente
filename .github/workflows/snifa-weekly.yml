@@ -1,0 +1,37 @@
+name: SNIFA weekly sync
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch: {}
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install playwright requests
+          playwright install --with-deps chromium
+
+      - name: Run the SNIFA scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python snifa_scraper.py
+
+      - name: Upload snapshot as a build artifact (backup copy)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snifa-snapshot
+          path: snifa_snapshot.json
+          retention-days: 90
