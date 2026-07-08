@@ -1049,8 +1049,8 @@ input[type=range]::-moz-range-thumb {
 // (set up in the schema.sql) is what actually restricts what the
 // anon key is allowed to do (read everything, insert reports only).
 // ──────────────────────────────────────────────────────────
-const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+const SUPABASE_URL = 'https://umqsexhwzojnfrcojnga.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_3e1hkWdR9mIIUO-VALdRRg_D3MmTsbJ';
 
 async function supabaseRequest(path, options = {}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
