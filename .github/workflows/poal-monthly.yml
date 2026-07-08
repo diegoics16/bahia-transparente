@@ -1,0 +1,40 @@
+name: POAL monthly sync
+
+on:
+  schedule:
+    - cron: '0 9 1 * *'
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pandas numpy requests
+
+      - name: Run the POAL dataset builder
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python build_poal_dataset.py
+
+      - name: Upload clean CSVs as a build artifact (backup copy)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: poal-clean-data
+          path: |
+            poal_clean_*.csv
+            poal_station_name_variants_*.csv
+            poal_coordinate_issues_*.csv
+            poal_value_parse_failures_*.csv
+            poal_unit_conflicts_*.csv
+          retention-days: 90
